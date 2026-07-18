@@ -458,7 +458,7 @@
     extraChecks: true,
     efGoal: 3000,
     strategy: "snowball",
-    startCash: 993,
+    startCash: 573,
     course: { on: true, amt: 414, months: 10, when: "now" },
     expenses: [
       ["Rent", 1425],
@@ -469,7 +469,6 @@
       ["Misc essentials", 150]
     ],
     debts: [
-      ["Debt 2", 420, 0, 0],
       ["Debt 3", 1280, 0, 0],
       ["MacBook Pro financing", 1836.51, 0, 331.88]
     ]
@@ -517,6 +516,12 @@
     });
     if (state.startCash === 1639) state.startCash = 993;
     state.jul18Paid = true;
+  }
+  // one-time: the 420 goeasy loan (35.71% APR) was paid off Jul 18, 2026
+  if (!state.goeasyPaid) {
+    state.debts = state.debts.filter(function (d) { return +d[1] !== 420; });
+    if (state.startCash === 993) state.startCash = 573;
+    state.goeasyPaid = true;
   }
   // saved states from before minimum-payment support: recognize the MacBook by its balance
   if (state.debts.some(function (d) { return d[1] === 1836.51 && !d[3]; })) {
