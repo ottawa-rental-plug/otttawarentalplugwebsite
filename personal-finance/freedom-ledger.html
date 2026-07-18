@@ -1413,21 +1413,20 @@
     state.trackerCats.push(cat);
     return cat;
   }
-  function trSet(cat, amt) {
-    if (!state.tracker[state.trackerMonth]) state.tracker[state.trackerMonth] = {};
-    state.tracker[state.trackerMonth][cat.id] = Math.round(amt * 100) / 100;
+  function trSetM(mkey, cat, amt) {
+    if (!state.tracker[mkey]) state.tracker[mkey] = {};
+    state.tracker[mkey][cat.id] = Math.round(amt * 100) / 100;
   }
-  $("trPrefill").addEventListener("click", function () {
+  // Fill one month from the budget constants: income, essentials, course, minimums, planned savings.
+  function trApplyBudget(mkey) {
     ensureTracker();
-    var mp = trMonthParts();
+    var parts = mkey.split("-"), y = +parts[0], m = +parts[1];
     var row = window.__lastSim && window.__lastSim.rows.find(function (r) {
-      return r.date.getFullYear() === mp.y && r.date.getMonth() === mp.m;
+      return r.date.getFullYear() === y && r.date.getMonth() === m;
     });
-    // Income from the plan (real paycheque count for this month if known)
     var checks = row ? row.checks : 2;
-    trSet(trFindOrCreate("Income", /paycheque/i, "Paycheques"), checks * state.paycheck);
-    trSet(trFindOrCreate("Income", /commission/i, "Lease commission"), state.leases * perLease());
-    // Essentials, mapped by name
+    trSetM(mkey, trFindOrCreate("Income", /paycheque/i, "Paycheques"), checks * state.paycheck);
+    trSetM(mkey, trFindOrCreate("Income", /commission/i, "Lease commission"), state.leases * perLease());
     state.expenses.forEach(function (e) {
       var n = e[0], amt = +e[1] || 0;
       var cat;
@@ -1438,18 +1437,19 @@
       else if (/phone/i.test(n)) cat = trFindOrCreate("Living", /phone/i, "Phone");
       else if (/misc/i.test(n)) cat = trFindOrCreate("Living", /personal care|misc/i, "Personal care");
       else cat = trFindOrCreate("Household", new RegExp(n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), n);
-      trSet(cat, amt);
+      trSetM(mkey, cat, amt);
     });
-    // Course, if it runs this month
-    if (row && row.toCourse > 0) trSet(trFindOrCreate("Living", /course|education/i, "Course/education"), row.toCourse);
-    // Debt minimums for debts still alive
+    var courseAmt = row ? row.toCourse : (state.course.on && state.course.when === "now" ? +state.course.amt : 0);
+    if (courseAmt > 0) trSetM(mkey, trFindOrCreate("Living", /course|education/i, "Course/education"), courseAmt);
     state.debts.forEach(function (d) {
       if ((+d[1] || 0) > 0 && (+d[3] || 0) > 0) {
-        trSet(trFindOrCreate("Obligations", new RegExp(d[0].split(" ")[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), d[0]), +d[3]);
+        trSetM(mkey, trFindOrCreate("Obligations", new RegExp(d[0].split(" ")[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), d[0]), +d[3]);
       }
     });
-    // Planned savings
-    if (row && row.toSave > 0) trSet(trFindOrCreate("Savings", /emergency/i, "Emergency fund"), row.toSave);
+    if (row && row.toSave > 0) trSetM(mkey, trFindOrCreate("Savings", /emergency/i, "Emergency fund"), row.toSave);
+  }
+  $("trPrefill").addEventListener("click", function () {
+    trApplyBudget(state.trackerMonth);
     trOpen = {};
     renderTracker(window.__lastSim);
     save();
@@ -1541,53 +1541,24 @@
     renderInputs(); update(true);
   });
 
-  // ---- One-time logbook seed: June 2026 from the TD statement, July 2026 from known events ----
-  if (!state.logSeeded) {
-    ensureTracker();
-    var seedPut = function (mk, group, name, amt) {
-      var cat = null;
-      for (var i = 0; i < state.trackerCats.length; i++) {
-        if (state.trackerCats[i].group === group && state.trackerCats[i].name === name) { cat = state.trackerCats[i]; break; }
-      }
-      if (!cat) { cat = { id: "c" + (state.trackerNextId++), group: group, name: name }; state.trackerCats.push(cat); }
-      if (!state.tracker[mk]) state.tracker[mk] = {};
-      state.tracker[mk][cat.id] = amt;
-    };
-    var JUN = "2026-5", JUL = "2026-6";
-    // June income: EI 1,236 x2; ATM cash deposits 215 + 125
-    seedPut(JUN, "Income", "Other income", 2472);
-    seedPut(JUN, "Income", "Side income", 340);
-    // June spending, categorized from the statement
-    seedPut(JUN, "Household", "Internet", 211.80);           // Rogers x3
-    seedPut(JUN, "Transportation", "Fuel", 208.43);          // 9 fill-ups
-    seedPut(JUN, "Transportation", "Repairs", 483.36);       // Myers Barrhaven
-    seedPut(JUN, "Living", "Groceries", 219.10);
-    seedPut(JUN, "Living", "Dining/eating out", 275.17);
-    seedPut(JUN, "Living", "Personal care", 64.21);          // Shoppers, Dollarama, convenience
-    seedPut(JUN, "Living", "Clothing", 192.10);              // My Suit Guy x2
-    seedPut(JUN, "Living", "Other/uncategorized", 1290.44);  // e-transfers out, PayPal, Kijiji, Netlify, Bright Data, Equifax, Uber
-    seedPut(JUN, "Entertainment", "Streaming/music", 6.90);  // Apple
-    seedPut(JUN, "Entertainment", "Games/hobbies", 77.07);   // Five Below, B&B, Triton
-    seedPut(JUN, "Entertainment", "Movies/events", 19.92);   // Cinemark
-    seedPut(JUN, "Travel", "Trips", 12.12);                  // IAH airport
-    seedPut(JUN, "Obligations", "goPeer loan", 83.66);
-    seedPut(JUN, "Obligations", "MacBook (Affirm)", 471.66); // three Affirm charges
-    seedPut(JUN, "Obligations", "Student loan (NSLSC)", 132);
-    seedPut(JUN, "Obligations", "Other debt", 40.32);        // easyfinancial x2
-    seedPut(JUN, "Obligations", "Bank fees", 57.45);         // NSF, coverage, OD interest, account fee
-    // July (so far): the payoff day + known payments
-    seedPut(JUL, "Income", "Paycheques", 1544);
-    seedPut(JUL, "Income", "Side income", 1700);
-    seedPut(JUL, "Income", "Other income", 1200);
-    seedPut(JUL, "Obligations", "goPeer loan", 159.28);
-    seedPut(JUL, "Obligations", "MacBook (Affirm)", 150.88);
-    seedPut(JUL, "Obligations", "Other debt", 1066);         // goeasy 420 + Visa 400 + 246 loan, all killed Jul 18
-    state.logSeeded = true;
-    save();
-  }
-
   renderInputs();
   update(true);
+
+  // ---- One-time logbook seed: July through December 2026 from the budget constants; June stays empty ----
+  if (!state.logSeed2) {
+    ensureTracker();
+    delete state.tracker["2026-5"];
+    for (var smi = 6; smi <= 11; smi++) {
+      var smk = "2026-" + smi;
+      state.tracker[smk] = {};
+      trApplyBudget(smk);
+    }
+    state.logSeed2 = true;
+    state.trackerMonth = "2026-6";
+    trOpen = {};
+    renderTracker(window.__lastSim);
+    save();
+  }
 })();
 </script>
 
