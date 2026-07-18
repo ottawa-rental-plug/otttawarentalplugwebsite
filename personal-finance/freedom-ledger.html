@@ -287,6 +287,35 @@
   button.tr-addbtn { margin: 0 0 0 0; width: auto; align-self: flex-start; background: none; border: 1px dashed var(--line); border-radius: 8px; color: var(--accent-ink); font: inherit; font-size: 12.5px; padding: 5px 10px; cursor: pointer; }
   button.tr-addbtn:hover { border-color: var(--accent); }
   #trYear td:first-child { font-weight: 600; }
+  .gdelta { font-size: 11.5px; font-weight: 700; margin-left: 8px; }
+  .gdelta.over { color: var(--bad); }
+  .gdelta.under { color: var(--good); }
+
+  /* Progress + net worth */
+  .progress-wrap { padding: 4px 0 16px; border-bottom: 1px dashed var(--line); margin-bottom: 6px; }
+  .progress-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; gap: 10px; flex-wrap: wrap; }
+  .progress-top b { font-size: 22px; color: var(--accent-ink); font-variant-numeric: tabular-nums; }
+  .progress-bar { height: 10px; border-radius: 5px; background: var(--tile); overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 5px; }
+  .progress-sub { font-size: 13px; color: var(--ink-2); margin-top: 8px; }
+  .networth { font-size: 13.5px; color: var(--ink-2); margin-top: 6px; }
+  .networth b { font-variant-numeric: tabular-nums; }
+
+  /* Payday modal */
+  .payday-btn { margin-top: 14px; width: 100%; background: var(--accent); color: #fff; border: none; border-radius: 10px; padding: 12px; font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
+  .payday-btn:hover { filter: brightness(1.08); }
+  .modal-ov { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: none; place-items: center; z-index: 50; padding: 20px; }
+  .modal-ov.show { display: grid; }
+  .modal { background: var(--surface); border-radius: 16px; padding: 24px; max-width: 430px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.35); max-height: 90vh; overflow-y: auto; }
+  .modal h3 { margin: 0 0 6px; font-family: Georgia, "Times New Roman", serif; font-size: 21px; font-weight: 500; }
+  .modal .m-sub { color: var(--ink-2); font-size: 13.5px; margin: 0 0 14px; }
+  .modal .actions { display: flex; gap: 10px; margin-top: 18px; justify-content: flex-end; }
+  button.primary { background: var(--accent); color: #fff; border: none; border-radius: 9px; padding: 9px 16px; font: inherit; font-weight: 600; cursor: pointer; }
+  button.ghost { background: none; border: 1px solid var(--line); border-radius: 9px; padding: 9px 16px; font: inherit; color: var(--ink-2); cursor: pointer; }
+  .m-result { margin-top: 14px; font-size: 14px; color: var(--accent-ink); font-weight: 600; display: none; }
+
+  .data-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+  .data-row button { flex: 1; min-width: 150px; }
 
   .warn { display: none; margin-top: 14px; border-left: 3px solid var(--bad); padding: 8px 12px; background: var(--surface); color: var(--ink-2); font-size: 14px; border-radius: 0 8px 8px 0; }
   .warn.show { display: block; }
@@ -326,6 +355,7 @@
         <input type="range" id="leases" min="0" max="8" step="1" value="2" aria-label="Leases signed per month">
         <div class="hint" id="leaseHint"></div>
         <div class="whatif" id="whatIf"></div>
+        <button class="payday-btn" id="paydayBtn" type="button">💰 Payday check-in</button>
       </div>
     </div>
     <div class="card stat">
@@ -491,6 +521,18 @@
         <table id="trYear"></table>
       </div>
     </div>
+    <div class="card" style="margin-top:16px">
+      <h2 style="font-size:17px">Your data</h2>
+      <p class="lede" style="margin:6px 0 0">Everything lives only in this browser — protect it. Export a backup after big updates, and restore it on any other device to move your numbers across.</p>
+      <div class="data-row">
+        <button class="reset" id="expBtn" type="button">⬇ Export backup</button>
+        <button class="reset" id="impBtn" type="button">⬆ Restore backup</button>
+        <button class="reset" id="csvBtn" type="button">🏦 Import TD statement (CSV)</button>
+      </div>
+      <input type="file" id="impFile" accept=".json,application/json" style="display:none">
+      <input type="file" id="csvFile" accept=".csv,text/csv" style="display:none">
+      <div class="debt-note" id="dataMsg" style="margin-top:10px"></div>
+    </div>
   </section>
 
   <section class="section">
@@ -531,6 +573,25 @@
   <footer>
     Assumptions: take-home figures; paydays every 14 days from your next payday; commission = rate × average rent per lease signed; cash on hand is deployed in the first plan month; course payments are treated as a committed bill ahead of debt attacks. Debt interest compounds monthly at the APR you enter per debt (leave at 0 for interest-free balances). Data lives only in this browser.
   </footer>
+</div>
+
+<div class="modal-ov" id="payModal">
+  <div class="modal">
+    <h3>Payday check-in</h3>
+    <p class="m-sub">Thirty seconds, every second Friday. Log what landed, update the balances, see the new date.</p>
+    <div class="field-list">
+      <div class="field"><label for="pdAmt">Paycheque that landed</label><input type="number" id="pdAmt" min="0" step="1"></div>
+      <div class="field"><label for="pdLeases">Leases signed since last cheque</label><input type="number" id="pdLeases" min="0" step="1" value="0"></div>
+      <div class="field"><label for="pdGopeer">goPeer balance now</label><input type="number" id="pdGopeer" min="0" step="0.01"></div>
+      <div class="field"><label for="pdMac">MacBook balance now</label><input type="number" id="pdMac" min="0" step="0.01"></div>
+      <div class="field"><label for="pdSave">Extra put into savings</label><input type="number" id="pdSave" min="0" step="1" value="0"></div>
+    </div>
+    <div class="m-result" id="pdResult"></div>
+    <div class="actions">
+      <button class="ghost" id="pdCancel" type="button">Close</button>
+      <button class="primary" id="pdSaveBtn" type="button">Log it</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -1111,8 +1172,61 @@
     });
   }
 
+  var DEBT_BASE = 4182.51; // where the journey started: all five debts on day one
+
+  function trCumUpToNow(match) {
+    // Sum logged tracker values for categories matching `match`, for months up to the current real month.
+    ensureTracker();
+    var now = new Date(), nowIdx = now.getFullYear() * 12 + now.getMonth(), sum = 0;
+    for (var mk in state.tracker) {
+      var p = mk.split("-");
+      if (+p[0] * 12 + +p[1] > nowIdx) continue;
+      var d = state.tracker[mk];
+      state.trackerCats.forEach(function (c) {
+        if (match(c) && d[c.id]) sum += +d[c.id] || 0;
+      });
+    }
+    return sum;
+  }
+
+  function renderProgress(sim, el) {
+    var debtNow = state.debts.reduce(function (s, d) { return s + (+d[1] || 0); }, 0);
+    var debtDone = Math.min(DEBT_BASE, Math.max(0, DEBT_BASE - debtNow));
+    var efDone = Math.min(state.efGoal, trCumUpToNow(function (c) { return c.group === "Savings"; }));
+    var courseTotal = (+state.course.amt || 0) * (+state.course.months || 0);
+    var courseDone = Math.min(courseTotal, trCumUpToNow(function (c) { return /course|education/i.test(c.name); }));
+    var totalScope = DEBT_BASE + state.efGoal + (state.course.on ? courseTotal : 0);
+    var pct = totalScope > 0 ? Math.round((debtDone + efDone + (state.course.on ? courseDone : 0)) / totalScope * 100) : 0;
+
+    var bal = trBalances(), lastEnd = null;
+    var nowIdx = new Date().getFullYear() * 12 + new Date().getMonth();
+    trChron().forEach(function (k) {
+      var p = k.split("-");
+      if (+p[0] * 12 + +p[1] <= nowIdx) lastEnd = bal.end[k];
+    });
+    var cash = lastEnd != null ? lastEnd : (+state.startBalance || 0);
+    var netWorth = cash + efDone - debtNow;
+
+    var wrap = document.createElement("div"); wrap.className = "progress-wrap";
+    wrap.innerHTML = '<div class="progress-top"><span style="font-weight:600">Journey to funded freedom</span><b></b></div>' +
+      '<div class="progress-bar"><div class="progress-fill"></div></div>' +
+      '<div class="progress-sub"></div><div class="networth"></div>';
+    wrap.querySelector("b").textContent = pct + "%";
+    wrap.querySelector(".progress-fill").style.width = Math.max(2, Math.min(100, pct)) + "%";
+    wrap.querySelector(".progress-sub").textContent =
+      "Debt destroyed " + money(debtDone) + " of " + money(DEBT_BASE) +
+      " · fund " + money(efDone) + " of " + money(state.efGoal) +
+      (state.course.on ? " · course " + money(courseDone) + " of " + money(courseTotal) : "");
+    var nw = wrap.querySelector(".networth");
+    nw.innerHTML = "Net worth right now (cash + savings − debts): <b></b>";
+    nw.querySelector("b").textContent = (netWorth < 0 ? "−" : "+") + money(Math.abs(netWorth));
+    nw.querySelector("b").style.color = netWorth < 0 ? "var(--bad)" : "var(--good)";
+    el.appendChild(wrap);
+  }
+
   function renderJourney(sim) {
     var el = $("journey"); el.innerHTML = "";
+    renderProgress(sim, el);
     var items = [];
     sim.rows.forEach(function (r) {
       r.paidNames.forEach(function (n) {
@@ -1387,14 +1501,25 @@
     $("trEnd").textContent = money(endBal);
     $("trEnd").className = endBal < 0 ? "neg" : "";
 
-    // group subtotals
+    // group subtotals with budget-vs-actual chips
+    var budget = trGroupBudget(mk);
     var el = $("trGroups");
     var groups = el.querySelectorAll(".tr-group");
     TR_GROUPS.forEach(function (g, i) {
       var sum = 0;
       state.trackerCats.forEach(function (c) { if (c.group === g) sum += trAmt(c.id); });
       var span = groups[i] && groups[i].querySelector("[data-gsum]");
-      if (span) span.textContent = sum ? money(sum) : "—";
+      if (!span) return;
+      span.textContent = sum ? money(sum) : "—";
+      var bud = budget[g] || 0;
+      if (sum > 0 && bud > 0 && Math.abs(sum - bud) >= 1) {
+        var diff = sum - bud;
+        var good = g === "Income" ? diff > 0 : diff < 0;
+        var chip = document.createElement("span");
+        chip.className = "gdelta " + (good ? "under" : "over");
+        chip.textContent = (diff > 0 ? "+" : "−") + money(Math.abs(diff)) + (g === "Income" ? (diff > 0 ? " over plan" : " short") : (diff > 0 ? " over" : " under"));
+        span.appendChild(chip);
+      }
     });
 
     // plan-vs-actual line
@@ -1450,6 +1575,30 @@
     }
     balCells += "<td><b>" + (lastEnd != null ? money(lastEnd) : "—") + "</b></td><td>—</td></tr>";
     tbl.innerHTML = "<thead>" + head + "</thead><tbody>" + rows + balCells + "</tbody>";
+  }
+
+  // What the budget expects per GROUP for a month (read-only; used for delta chips).
+  function trGroupBudget(mkey) {
+    var parts = mkey.split("-"), y = +parts[0], m = +parts[1];
+    var row = window.__lastSim && window.__lastSim.rows.find(function (r) {
+      return r.date.getFullYear() === y && r.date.getMonth() === m;
+    });
+    var b = {};
+    function add(g, v) { b[g] = (b[g] || 0) + v; }
+    add("Income", (row ? row.checks : 2) * state.paycheck + state.leases * perLease());
+    state.expenses.forEach(function (e) {
+      var n = e[0], amt = +e[1] || 0;
+      if (/rent|utilit/i.test(n)) add("Household", amt);
+      else if (/transport/i.test(n)) add("Transportation", amt);
+      else if (/student|nslsc/i.test(n)) add("Obligations", amt);
+      else if (/grocer|phone|misc/i.test(n)) add("Living", amt);
+      else add("Household", amt);
+    });
+    var courseAmt = row ? row.toCourse : (state.course.on && state.course.when === "now" ? +state.course.amt : 0);
+    if (courseAmt > 0) add("Living", courseAmt);
+    state.debts.forEach(function (d) { if ((+d[1] || 0) > 0 && (+d[3] || 0) > 0) add("Obligations", +d[3]); });
+    if (row && row.toSave > 0) add("Savings", row.toSave);
+    return b;
   }
 
   function trFindOrCreate(group, nameRe, fallbackName) {
@@ -1516,6 +1665,146 @@
     var mp = trMonthParts(); var d = new Date(mp.y, mp.m + 1, 1);
     state.trackerMonth = d.getFullYear() + "-" + d.getMonth();
     renderTracker(window.__lastSim); save();
+  });
+
+  // ---- Payday check-in ----
+  function trAddTo(mkey, cat, amt) {
+    if (!state.tracker[mkey]) state.tracker[mkey] = {};
+    state.tracker[mkey][cat.id] = Math.round(((+state.tracker[mkey][cat.id] || 0) + amt) * 100) / 100;
+  }
+  function findDebt(re) {
+    for (var i = 0; i < state.debts.length; i++) if (re.test(state.debts[i][0])) return i;
+    return -1;
+  }
+  $("paydayBtn").addEventListener("click", function () {
+    ensureTracker();
+    $("pdAmt").value = state.paycheck;
+    $("pdLeases").value = 0;
+    $("pdSave").value = 0;
+    var gi = findDebt(/gopeer/i), mi = findDebt(/macbook|affirm/i);
+    var gRow = $("pdGopeer").parentElement, mRow = $("pdMac").parentElement;
+    gRow.style.display = gi >= 0 && +state.debts[gi][1] > 0 ? "" : "none";
+    mRow.style.display = mi >= 0 && +state.debts[mi][1] > 0 ? "" : "none";
+    if (gi >= 0) $("pdGopeer").value = state.debts[gi][1];
+    if (mi >= 0) $("pdMac").value = state.debts[mi][1];
+    $("pdResult").style.display = "none";
+    $("payModal").classList.add("show");
+  });
+  $("pdCancel").addEventListener("click", function () { $("payModal").classList.remove("show"); });
+  $("payModal").addEventListener("click", function (e) { if (e.target === this) this.classList.remove("show"); });
+  $("pdSaveBtn").addEventListener("click", function () {
+    var now = new Date(), mk = now.getFullYear() + "-" + now.getMonth();
+    var amt = +$("pdAmt").value || 0;
+    var leases = +$("pdLeases").value || 0;
+    var extraSave = +$("pdSave").value || 0;
+    if (amt > 0) trAddTo(mk, trFindOrCreate("Income", /paycheque/i, "Paycheques"), amt);
+    if (leases > 0) trAddTo(mk, trFindOrCreate("Income", /commission/i, "Lease commission"), leases * perLease());
+    if (extraSave > 0) trAddTo(mk, trFindOrCreate("Savings", /emergency/i, "Emergency fund"), extraSave);
+    var gi = findDebt(/gopeer/i), mi = findDebt(/macbook|affirm/i);
+    if (gi >= 0 && $("pdGopeer").parentElement.style.display !== "none") state.debts[gi][1] = +$("pdGopeer").value || 0;
+    if (mi >= 0 && $("pdMac").parentElement.style.display !== "none") state.debts[mi][1] = +$("pdMac").value || 0;
+    update(true);
+    var res = $("pdResult");
+    res.textContent = "Logged. Debt-free: " + $("statDebtFree").textContent + " · " + $("statDebtFreeSub").textContent.split("·")[0].trim();
+    res.style.display = "block";
+  });
+
+  // ---- Backup, restore, and TD statement import ----
+  function dataMsg(t) { $("dataMsg").textContent = t; }
+  $("expBtn").addEventListener("click", function () {
+    var blob = new Blob([JSON.stringify(state, null, 1)], { type: "application/json" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "freedom-ledger-backup-" + new Date().toISOString().slice(0, 10) + ".json";
+    document.body.appendChild(a); a.click(); a.remove();
+    dataMsg("Backup downloaded. Keep it somewhere safe — it contains every number in this ledger.");
+  });
+  $("impBtn").addEventListener("click", function () { $("impFile").click(); });
+  $("impFile").addEventListener("change", function () {
+    var f = this.files[0]; if (!f) return;
+    var rd = new FileReader();
+    rd.onload = function () {
+      try {
+        var data = JSON.parse(rd.result);
+        if (!data || !data.expenses || !data.debts) throw new Error("bad");
+        state = data;
+        renderInputs(); update(true);
+        dataMsg("Backup restored — every section now reflects the imported numbers.");
+      } catch (e) { dataMsg("That file doesn't look like a Freedom Ledger backup — nothing was changed."); }
+    };
+    rd.readAsText(f); this.value = "";
+  });
+
+  var CSV_RULES = [
+    [/SHELL|PETRO|ESSO|ULTRAMAR|COSTCO GAS|SEAWAY|PIONEER|MOBIL/i, "Transportation", /fuel/i, "Fuel"],
+    [/METRO|FOOD BASICS|SOBEYS|LOBLAWS|WALMART|WAL-MART|KOWLOON|FRESHCO|NO FRILLS|FARM BOY|COSTCO WHOLESALE/i, "Living", /grocer/i, "Groceries"],
+    [/MCDONALD|TIM HORTONS|A&W|SHAWARMA|CAFE|IHOP|SUBWAY|PIZZA|WENDY|BURGER|KFC|POPEYE|STARBUCKS|RESTAUR/i, "Living", /dining/i, "Dining/eating out"],
+    [/ROGERS|BELL|TELUS|FIDO|KOODO|FREEDOM MOBILE/i, "Living", /phone/i, "Phone"],
+    [/GOPEER/i, "Obligations", /gopeer/i, "goPeer loan"],
+    [/AFFIRM/i, "Obligations", /macbook|affirm/i, "MacBook (Affirm)"],
+    [/NSLSC/i, "Obligations", /student|nslsc/i, "Student loan (NSLSC)"],
+    [/EASYFINANCIAL|GOEASY/i, "Obligations", /other debt/i, "Other debt"],
+    [/NSF|O\.D\.P|OVERDRAFT|MONTHLY ACCOUNT FEE|PAYMENT COVERAGE|SERVICE CHARGE/i, "Obligations", /bank fee/i, "Bank fees"],
+    [/SHOPPERS|DOLLARAMA|PHARMA|REXALL/i, "Living", /personal care/i, "Personal care"],
+    [/HYDRO|ENBRIDGE|UTILIT/i, "Household", /utilit/i, "Utilities"],
+    [/RENT|PROPERTY MGMT|REALTY/i, "Household", /rent/i, "Rent"],
+    [/CINEMA|CINEPLEX|NETFLIX|SPOTIFY|APPLE\.COM|DISNEY|CRAVE/i, "Entertainment", /streaming/i, "Streaming/music"],
+    [/UBER|LYFT|OC TRANSPO|PRESTO|TAXI/i, "Transportation", /transit/i, "Transit/rideshare"]
+  ];
+  function csvParseLine(line) {
+    var out = [], cur = "", q = false;
+    for (var i = 0; i < line.length; i++) {
+      var ch = line[i];
+      if (ch === '"') q = !q;
+      else if (ch === "," && !q) { out.push(cur); cur = ""; }
+      else cur += ch;
+    }
+    out.push(cur);
+    return out;
+  }
+  $("csvBtn").addEventListener("click", function () { $("csvFile").click(); });
+  $("csvFile").addEventListener("change", function () {
+    var f = this.files[0]; if (!f) return;
+    var rd = new FileReader();
+    rd.onload = function () {
+      try {
+        ensureTracker();
+        var lines = String(rd.result).split(/\r?\n/).filter(function (l) { return l.trim(); });
+        var applied = 0, skipped = 0, months = {}, other = 0;
+        lines.forEach(function (line) {
+          var c = csvParseLine(line);
+          if (c.length < 4) { skipped++; return; }
+          var dm = c[0].match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+          if (!dm) { skipped++; return; }
+          var mk = dm[3] + "-" + (+dm[1] - 1);
+          var desc = c[1] || "";
+          var debit = parseFloat(c[2]) || 0, credit = parseFloat(c[3]) || 0;
+          if (/TFR-TO|TFR-FR|SSV TO|PTS TO|RTN NSF/i.test(desc)) { skipped++; return; }
+          if (credit > 0) {
+            var incCat = /EI\b|EMPL INS|PAY(ROLL)?\b|WAGES/i.test(desc)
+              ? trFindOrCreate("Income", /paycheque/i, "Paycheques")
+              : trFindOrCreate("Income", /other income/i, "Other income");
+            trAddTo(mk, incCat, credit); applied++; months[mk] = 1;
+            return;
+          }
+          if (debit <= 0) { skipped++; return; }
+          var matched = false;
+          for (var r = 0; r < CSV_RULES.length; r++) {
+            if (CSV_RULES[r][0].test(desc)) {
+              trAddTo(mk, trFindOrCreate(CSV_RULES[r][1], CSV_RULES[r][2], CSV_RULES[r][3]), debit);
+              matched = true; break;
+            }
+          }
+          if (!matched) { trAddTo(mk, trFindOrCreate("Living", /uncategor/i, "Other/uncategorized"), debit); other++; }
+          applied++; months[mk] = 1;
+        });
+        update(true); save();
+        dataMsg("Imported " + applied + " transactions into " + Object.keys(months).length + " month(s)" +
+          (other ? " — " + other + " landed in Other/uncategorized; worth a quick review." : ".") +
+          (skipped ? " Skipped " + skipped + " lines (transfers between your own accounts, reversals, or non-transaction rows)." : ""));
+      } catch (e) { dataMsg("Couldn't read that CSV — export the account statement as CSV from TD EasyWeb and try again."); }
+    };
+    rd.readAsText(f); this.value = "";
   });
 
   // ---- Theme toggle (standalone only; the artifact viewer has its own) ----
