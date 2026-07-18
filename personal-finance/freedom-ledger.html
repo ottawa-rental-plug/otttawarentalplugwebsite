@@ -458,6 +458,7 @@
     debts: [
       ["Debt 1", 246, 0, 0],
       ["Debt 2", 420, 0, 0],
+      ["Visa credit card", 400, 19.99, 10],
       ["Debt 3", 1280, 0, 0],
       ["MacBook Pro financing", 1836.51, 0, 331.88]
     ]
@@ -491,6 +492,13 @@
   if (state.startCash === 4444) state.startCash = 1639; // old default assumed the whole month-end pile was spare; keep one month of essentials as float
   if (!state.course) state.course = clone(DEFAULTS.course);
   state.debts = state.debts.map(function (d) { return [d[0], d[1], d[2] || 0, d[3] || 0]; });
+  // one-time: the Visa credit card was reported as a separate 5th debt
+  if (!state.visaAdded) {
+    if (!state.debts.some(function (d) { return /visa/i.test(d[0]); })) {
+      state.debts.push(["Visa credit card", 400, 19.99, 10]);
+    }
+    state.visaAdded = true;
+  }
   // saved states from before minimum-payment support: recognize the MacBook by its balance
   if (state.debts.some(function (d) { return d[1] === 1836.51 && !d[3]; })) {
     state.debts = state.debts.map(function (d) {
