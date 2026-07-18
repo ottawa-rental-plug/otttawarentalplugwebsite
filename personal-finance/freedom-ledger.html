@@ -478,6 +478,7 @@
         <div><span>Net</span><b id="trNet">$0</b></div>
       </div>
       <div class="tr-plan" id="trPlan"></div>
+      <button class="tr-addbtn" id="trPrefill" type="button" style="margin-bottom:12px">⤓ Prefill this month from your budget</button>
       <div id="trGroups"></div>
     </div>
     <div class="card" style="margin-top:16px">
@@ -1403,6 +1404,56 @@
     }).join("");
     tbl.innerHTML = "<thead>" + head + "</thead><tbody>" + rows + "</tbody>";
   }
+
+  function trFindOrCreate(group, nameRe, fallbackName) {
+    for (var i = 0; i < state.trackerCats.length; i++) {
+      if (state.trackerCats[i].group === group && nameRe.test(state.trackerCats[i].name)) return state.trackerCats[i];
+    }
+    var cat = { id: "c" + (state.trackerNextId++), group: group, name: fallbackName };
+    state.trackerCats.push(cat);
+    return cat;
+  }
+  function trSet(cat, amt) {
+    if (!state.tracker[state.trackerMonth]) state.tracker[state.trackerMonth] = {};
+    state.tracker[state.trackerMonth][cat.id] = Math.round(amt * 100) / 100;
+  }
+  $("trPrefill").addEventListener("click", function () {
+    ensureTracker();
+    var mp = trMonthParts();
+    var row = window.__lastSim && window.__lastSim.rows.find(function (r) {
+      return r.date.getFullYear() === mp.y && r.date.getMonth() === mp.m;
+    });
+    // Income from the plan (real paycheque count for this month if known)
+    var checks = row ? row.checks : 2;
+    trSet(trFindOrCreate("Income", /paycheque/i, "Paycheques"), checks * state.paycheck);
+    trSet(trFindOrCreate("Income", /commission/i, "Lease commission"), state.leases * perLease());
+    // Essentials, mapped by name
+    state.expenses.forEach(function (e) {
+      var n = e[0], amt = +e[1] || 0;
+      var cat;
+      if (/rent/i.test(n)) cat = trFindOrCreate("Household", /rent/i, "Rent");
+      else if (/utilit/i.test(n)) cat = trFindOrCreate("Household", /utilit/i, "Utilities");
+      else if (/grocer/i.test(n)) cat = trFindOrCreate("Living", /grocer/i, "Groceries");
+      else if (/transport/i.test(n)) cat = trFindOrCreate("Transportation", /fuel|transport/i, "Fuel");
+      else if (/phone/i.test(n)) cat = trFindOrCreate("Living", /phone/i, "Phone");
+      else if (/misc/i.test(n)) cat = trFindOrCreate("Living", /personal care|misc/i, "Personal care");
+      else cat = trFindOrCreate("Household", new RegExp(n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), n);
+      trSet(cat, amt);
+    });
+    // Course, if it runs this month
+    if (row && row.toCourse > 0) trSet(trFindOrCreate("Living", /course|education/i, "Course/education"), row.toCourse);
+    // Debt minimums for debts still alive
+    state.debts.forEach(function (d) {
+      if ((+d[1] || 0) > 0 && (+d[3] || 0) > 0) {
+        trSet(trFindOrCreate("Obligations", new RegExp(d[0].split(" ")[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), d[0]), +d[3]);
+      }
+    });
+    // Planned savings
+    if (row && row.toSave > 0) trSet(trFindOrCreate("Savings", /emergency/i, "Emergency fund"), row.toSave);
+    trOpen = {};
+    renderTracker(window.__lastSim);
+    save();
+  });
 
   $("mPrev").addEventListener("click", function () {
     var mp = trMonthParts(); var d = new Date(mp.y, mp.m - 1, 1);
