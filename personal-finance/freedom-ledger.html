@@ -1490,6 +1490,51 @@
     renderInputs(); update(true);
   });
 
+  // ---- One-time logbook seed: June 2026 from the TD statement, July 2026 from known events ----
+  if (!state.logSeeded) {
+    ensureTracker();
+    var seedPut = function (mk, group, name, amt) {
+      var cat = null;
+      for (var i = 0; i < state.trackerCats.length; i++) {
+        if (state.trackerCats[i].group === group && state.trackerCats[i].name === name) { cat = state.trackerCats[i]; break; }
+      }
+      if (!cat) { cat = { id: "c" + (state.trackerNextId++), group: group, name: name }; state.trackerCats.push(cat); }
+      if (!state.tracker[mk]) state.tracker[mk] = {};
+      state.tracker[mk][cat.id] = amt;
+    };
+    var JUN = "2026-5", JUL = "2026-6";
+    // June income: EI 1,236 x2; ATM cash deposits 215 + 125
+    seedPut(JUN, "Income", "Other income", 2472);
+    seedPut(JUN, "Income", "Side income", 340);
+    // June spending, categorized from the statement
+    seedPut(JUN, "Household", "Internet", 211.80);           // Rogers x3
+    seedPut(JUN, "Transportation", "Fuel", 208.43);          // 9 fill-ups
+    seedPut(JUN, "Transportation", "Repairs", 483.36);       // Myers Barrhaven
+    seedPut(JUN, "Living", "Groceries", 219.10);
+    seedPut(JUN, "Living", "Dining/eating out", 275.17);
+    seedPut(JUN, "Living", "Personal care", 64.21);          // Shoppers, Dollarama, convenience
+    seedPut(JUN, "Living", "Clothing", 192.10);              // My Suit Guy x2
+    seedPut(JUN, "Living", "Other/uncategorized", 1290.44);  // e-transfers out, PayPal, Kijiji, Netlify, Bright Data, Equifax, Uber
+    seedPut(JUN, "Entertainment", "Streaming/music", 6.90);  // Apple
+    seedPut(JUN, "Entertainment", "Games/hobbies", 77.07);   // Five Below, B&B, Triton
+    seedPut(JUN, "Entertainment", "Movies/events", 19.92);   // Cinemark
+    seedPut(JUN, "Travel", "Trips", 12.12);                  // IAH airport
+    seedPut(JUN, "Obligations", "goPeer loan", 83.66);
+    seedPut(JUN, "Obligations", "MacBook (Affirm)", 471.66); // three Affirm charges
+    seedPut(JUN, "Obligations", "Student loan (NSLSC)", 132);
+    seedPut(JUN, "Obligations", "Other debt", 40.32);        // easyfinancial x2
+    seedPut(JUN, "Obligations", "Bank fees", 57.45);         // NSF, coverage, OD interest, account fee
+    // July (so far): the payoff day + known payments
+    seedPut(JUL, "Income", "Paycheques", 1544);
+    seedPut(JUL, "Income", "Side income", 1700);
+    seedPut(JUL, "Income", "Other income", 1200);
+    seedPut(JUL, "Obligations", "goPeer loan", 159.28);
+    seedPut(JUL, "Obligations", "MacBook (Affirm)", 150.88);
+    seedPut(JUL, "Obligations", "Other debt", 1066);         // goeasy 420 + Visa 400 + 246 loan, all killed Jul 18
+    state.logSeeded = true;
+    save();
+  }
+
   renderInputs();
   update(true);
 })();
