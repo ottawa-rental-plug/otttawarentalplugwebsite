@@ -187,12 +187,14 @@
   .advice-item b { color: var(--ink); }
 
   /* Debts */
-  .debt-head { display: grid; grid-template-columns: 12px 1fr 100px 62px 22px; gap: 8px; margin-top: 12px; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
-  .debt-head span:nth-child(3), .debt-head span:nth-child(4) { text-align: right; }
-  .debt-row { display: grid; grid-template-columns: 12px 1fr 100px 62px 22px; gap: 8px; align-items: center; }
+  .debt-item { padding: 8px 0; }
+  .debt-item + .debt-item { border-top: 1px dashed var(--line); }
+  .debt-row { display: grid; grid-template-columns: 12px 1fr 20px; gap: 6px; align-items: center; }
   .debt-row .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--debt); }
-  .debt-row.paid .dot { background: var(--save); }
-  .debt-row input.apr { width: 62px; }
+  .debt-item.paid .dot { background: var(--save); }
+  .debt-nums { display: grid; grid-template-columns: 1.2fr 0.9fr 1.1fr; gap: 6px; margin: 4px 0 0 18px; }
+  .debt-nums > div > span { display: block; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin-bottom: 2px; }
+  .debt-nums input { width: 100%; padding: 6px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); font: inherit; font-variant-numeric: tabular-nums; text-align: right; }
   .debt-note { font-size: 13px; color: var(--muted); margin-top: 10px; }
 
   /* Milestones */
@@ -322,11 +324,10 @@
           <button id="segAval" type="button">Avalanche · highest APR first</button>
         </div>
         <div class="seg-hint" id="segHint"></div>
-        <div class="debt-head"><span></span><span>Name</span><span>Balance</span><span>APR %</span><span></span></div>
-        <div class="field-list" id="debtList" style="margin-top:6px"></div>
+        <div id="debtList" style="margin-top:6px"></div>
         <button class="add" id="addDebt">+ Add a debt</button>
         <div class="card-total"><span>Total debt</span><span id="debtTotal">$3,782.51</span></div>
-        <div class="debt-note" id="debtNote">Add each debt's APR if it charges interest — 0 is fine for interest-free balances. A green dot means the plan clears it.</div>
+        <div class="debt-note" id="debtNote">Min/mo = a required monthly payment (like a financing plan) — the plan pays those first every month, like a bill, before attacking anything. APR 0 is fine for interest-free balances. A green dot means the plan clears it.</div>
         <button class="reset" id="reset">Reset to my original numbers</button>
       </div>
     </div>
@@ -455,10 +456,10 @@
       ["Misc essentials", 150]
     ],
     debts: [
-      ["Debt 1", 246, 0],
-      ["Debt 2", 420, 0],
-      ["Debt 3", 1280, 0],
-      ["Debt 4", 1836.51, 0]
+      ["Debt 1", 246, 0, 0],
+      ["Debt 2", 420, 0, 0],
+      ["Debt 3", 1280, 0, 0],
+      ["MacBook Pro financing", 1836.51, 0, 331.88]
     ]
   };
   var STORE_KEY = "freedom-ledger-v3";
@@ -489,6 +490,13 @@
   if (state.startCash == null) state.startCash = DEFAULTS.startCash;
   if (state.startCash === 4444) state.startCash = 1639; // old default assumed the whole month-end pile was spare; keep one month of essentials as float
   if (!state.course) state.course = clone(DEFAULTS.course);
+  state.debts = state.debts.map(function (d) { return [d[0], d[1], d[2] || 0, d[3] || 0]; });
+  // saved states from before minimum-payment support: recognize the MacBook by its balance
+  if (state.debts.some(function (d) { return d[1] === 1836.51 && !d[3]; })) {
+    state.debts = state.debts.map(function (d) {
+      return d[1] === 1836.51 ? [/^Debt \d$/.test(d[0]) ? "MacBook Pro financing" : d[0], d[1], d[2] || 0, 331.88] : d;
+    });
+  }
 
   function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {} }
 
@@ -511,7 +519,7 @@
     var courseAmt = +state.course.amt || 0;
     var courseLeft = courseOn ? Math.max(1, Math.round(+state.course.months || 0)) : 0;
     var essentials = state.expenses.reduce(function (s, e) { return s + (+e[1] || 0); }, 0);
-    var debts = state.debts.map(function (d) { return { name: d[0], bal: +d[1] || 0, apr: +d[2] || 0 }; });
+    var debts = state.debts.map(function (d) { return { name: d[0], bal: +d[1] || 0, apr: +d[2] || 0, min: +d[3] || 0 }; });
     debts.sort(strategy === "avalanche"
       ? function (a, b) { return (b.apr - a.apr) || (a.bal - b.bal); }
       : function (a, b) { return a.bal - b.bal; });
@@ -561,6 +569,19 @@
       }
       totalInterest += interest;
 
+      // Required minimums come first — they're bills, not choices.
+      for (var q = 0; q < debts.length; q++) {
+        if (pool <= 0) break;
+        if (debts[q].bal > 0.005 && debts[q].min > 0) {
+          var minPay = Math.min(debts[q].bal, debts[q].min, pool);
+          debts[q].bal -= minPay; pool -= minPay; toDebt += minPay;
+          if (debts[q].bal <= 0.005) {
+            debts[q].bal = 0;
+            rowEvents.push(debts[q].name + " paid off");
+          }
+        }
+      }
+      // Then everything left attacks the target order.
       for (var k = 0; k < debts.length; k++) {
         if (pool <= 0) break;
         if (debts[k].bal > 0.005) {
@@ -651,26 +672,36 @@
       : function (a, b) { return a.bal - b.bal; });
     order.forEach(function (o) {
       var d = state.debts[o.i];
+      var item = document.createElement("div"); item.className = "debt-item";
+      if (sim && sim.freeMonth !== null) item.className += " paid";
       var row = document.createElement("div"); row.className = "debt-row";
-      if (sim && sim.freeMonth !== null) row.className += " paid";
       var dot = document.createElement("span"); dot.className = "dot";
       var name = document.createElement("input"); name.className = "name-in"; name.type = "text";
       name.value = d[0]; name.setAttribute("aria-label", "Debt name");
       name.addEventListener("input", function () { state.debts[o.i][0] = name.value; save(); });
-      var bal = document.createElement("input"); bal.type = "number"; bal.min = "0"; bal.step = "1";
-      bal.value = d[1]; bal.setAttribute("aria-label", d[0] + " balance");
-      bal.addEventListener("input", function () { state.debts[o.i][1] = +bal.value || 0; update(); });
-      bal.addEventListener("blur", function () { update(true); });
-      var apr = document.createElement("input"); apr.type = "number"; apr.min = "0"; apr.step = "0.5"; apr.className = "apr";
-      apr.value = d[2] || ""; apr.placeholder = "0";
-      apr.setAttribute("aria-label", d[0] + " annual interest rate percent");
-      apr.addEventListener("input", function () { state.debts[o.i][2] = +apr.value || 0; update(); });
-      apr.addEventListener("blur", function () { update(true); });
       var x = document.createElement("button"); x.className = "x"; x.type = "button";
       x.textContent = "×"; x.setAttribute("aria-label", "Remove " + d[0]);
       x.addEventListener("click", function () { state.debts.splice(o.i, 1); update(true); });
-      row.appendChild(dot); row.appendChild(name); row.appendChild(bal); row.appendChild(apr); row.appendChild(x);
-      el.appendChild(row);
+      row.appendChild(dot); row.appendChild(name); row.appendChild(x);
+
+      var nums = document.createElement("div"); nums.className = "debt-nums";
+      function numField(labelText, value, placeholder, step, onInput, reSort) {
+        var wrap = document.createElement("div");
+        var lab = document.createElement("span"); lab.textContent = labelText;
+        var inp = document.createElement("input"); inp.type = "number"; inp.min = "0"; inp.step = step;
+        inp.value = value; if (placeholder) inp.placeholder = placeholder;
+        inp.setAttribute("aria-label", d[0] + " " + labelText.toLowerCase());
+        inp.addEventListener("input", function () { onInput(+inp.value || 0); update(); });
+        if (reSort) inp.addEventListener("blur", function () { update(true); });
+        wrap.appendChild(lab); wrap.appendChild(inp);
+        return wrap;
+      }
+      nums.appendChild(numField("Balance", d[1], "", "1", function (v) { state.debts[o.i][1] = v; }, true));
+      nums.appendChild(numField("APR %", d[2] || "", "0", "0.5", function (v) { state.debts[o.i][2] = v; }, true));
+      nums.appendChild(numField("Min / mo", d[3] || "", "0", "1", function (v) { state.debts[o.i][3] = v; }, false));
+
+      item.appendChild(row); item.appendChild(nums);
+      el.appendChild(item);
     });
   }
 
@@ -821,6 +852,15 @@
         items.push({ cls: "warn-a", html: "<b>Committed costs eat " + ratio + "% of a typical month.</b> You're solvent because of 3-check months and commission — protect both, and don't add a single recurring bill until the emergency fund is done." });
       } else if (ratio >= 80) {
         items.push({ cls: "info-a", html: "<b>Committed costs run " + ratio + "% of a typical month.</b> Tight but workable — the plan holds as long as commission keeps flowing." });
+      }
+    }
+
+    // 5b. Required minimums vs typical surplus
+    var totalMins = state.debts.reduce(function (s, d) { return s + ((+d[1] || 0) > 0 ? (+d[3] || 0) : 0); }, 0);
+    if (totalMins > 0 && sim.totalDebt > 0) {
+      var typicalPool = 2 * state.paycheck + sim.commission - essentials - (state.course.on && state.course.when === "now" ? +state.course.amt : 0);
+      if (totalMins > typicalPool) {
+        items.push({ cls: "warn-a", html: "<b>Your required minimums (" + money(totalMins) + "/mo) are bigger than a typical month's surplus (" + money(Math.max(0, typicalPool)) + ").</b> Ordinary months can only service the financing — it's the 3-cheque months, commission above " + state.leases + " leases, and your deployed cash that actually shrink the debt. Protect those." });
       }
     }
 
