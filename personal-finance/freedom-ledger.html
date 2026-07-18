@@ -299,10 +299,10 @@
           <div class="field"><label for="commRate">Commission rate (%)</label><input type="number" id="commRate" value="10" min="0" step="0.5"></div>
           <div class="field"><label for="nextPayday">Next payday</label><input type="date" id="nextPayday" value="2026-07-24"></div>
           <div class="field"><label for="efGoal">Emergency fund goal</label><input type="number" id="efGoal" value="3000" min="0" step="100"></div>
-          <div class="field"><label for="startCash">Cash on hand at month end</label><input type="number" id="startCash" value="4444" min="0" step="1"></div>
+          <div class="field"><label for="startCash">Spare cash to deploy (month one)</label><input type="number" id="startCash" value="1639" min="0" step="1"></div>
         </div>
         <div class="computed" id="perLease">10% of $2,000 rent = $200 per lease</div>
-        <div class="debt-note" style="margin-top:6px">Cash on hand gets deployed in month one — course first, then debts. Set aside anything you need before entering it here.</div>
+        <div class="debt-note" style="margin-top:6px">Pre-filled as your $4,444 month-end money minus one month of essentials ($2,805) kept back as a bill-paying float — that float breaks the paycheque-to-paycheque cycle for good. Only ever deploy money the float doesn't need.</div>
         <div class="card-total"><span>Typical month (2 checks)</span><span id="incomeTotal">$3,088</span></div>
         <div class="toggle">
           <input type="checkbox" id="extraChecks" checked>
@@ -444,7 +444,7 @@
     extraChecks: true,
     efGoal: 3000,
     strategy: "snowball",
-    startCash: 4444,
+    startCash: 1639,
     course: { on: true, amt: 414, months: 10, when: "now" },
     expenses: [
       ["Rent", 1425],
@@ -487,6 +487,7 @@
   } catch (e) {}
   if (!state.strategy) state.strategy = "snowball";
   if (state.startCash == null) state.startCash = DEFAULTS.startCash;
+  if (state.startCash === 4444) state.startCash = 1639; // old default assumed the whole month-end pile was spare; keep one month of essentials as float
   if (!state.course) state.course = clone(DEFAULTS.course);
 
   function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {} }
