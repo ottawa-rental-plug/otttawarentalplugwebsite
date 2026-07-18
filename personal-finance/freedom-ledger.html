@@ -1,0 +1,728 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Freedom Ledger — Debt Payoff &amp; Savings Plan</title>
+</head>
+<body>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f7f7f4;
+    --surface: #fdfdfc;
+    --ink: #131311;
+    --ink-2: #52514e;
+    --muted: #898781;
+    --line: #e3e2db;
+    --hairline: rgba(19,19,17,0.10);
+    --accent: #0c6b46;
+    --accent-ink: #0a5c3c;
+    --accent-wash: rgba(12,107,70,0.08);
+    --debt: #2a78d6;
+    --save: #008300;
+    --good: #006300;
+    --bad: #b02a2a;
+    --grid: #e1e0d9;
+    --axis: #c3c2b7;
+    --tile: #f1f1ec;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --bg: #0d0d0d;
+      --surface: #1a1a19;
+      --ink: #f4f4ef;
+      --ink-2: #c3c2b7;
+      --muted: #8f8d86;
+      --line: #2c2c2a;
+      --hairline: rgba(255,255,255,0.10);
+      --accent: #2fbf85;
+      --accent-ink: #3fcf95;
+      --accent-wash: rgba(47,191,133,0.10);
+      --debt: #3987e5;
+      --save: #2ea52e;
+      --good: #35b535;
+      --bad: #e66767;
+      --grid: #2c2c2a;
+      --axis: #383835;
+      --tile: #222220;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0d0d0d;
+    --surface: #1a1a19;
+    --ink: #f4f4ef;
+    --ink-2: #c3c2b7;
+    --muted: #8f8d86;
+    --line: #2c2c2a;
+    --hairline: rgba(255,255,255,0.10);
+    --accent: #2fbf85;
+    --accent-ink: #3fcf95;
+    --accent-wash: rgba(47,191,133,0.10);
+    --debt: #3987e5;
+    --save: #2ea52e;
+    --good: #35b535;
+    --bad: #e66767;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --tile: #222220;
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --bg: #f7f7f4;
+    --surface: #fdfdfc;
+    --ink: #131311;
+    --ink-2: #52514e;
+    --muted: #898781;
+    --line: #e3e2db;
+    --hairline: rgba(19,19,17,0.10);
+    --accent: #0c6b46;
+    --accent-ink: #0a5c3c;
+    --accent-wash: rgba(12,107,70,0.08);
+    --debt: #2a78d6;
+    --save: #008300;
+    --good: #006300;
+    --bad: #b02a2a;
+    --grid: #e1e0d9;
+    --axis: #c3c2b7;
+    --tile: #f1f1ec;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .wrap { max-width: 1060px; margin: 0 auto; padding: 32px 20px 80px; }
+
+  header.masthead { padding: 8px 0 24px; border-bottom: 1px solid var(--line); margin-bottom: 28px; }
+  .eyebrow { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-ink); font-weight: 600; }
+  h1 { font-family: Georgia, "Times New Roman", serif; font-size: clamp(28px, 4.5vw, 40px); font-weight: 500; margin: 6px 0 8px; text-wrap: balance; }
+  .masthead p { color: var(--ink-2); max-width: 62ch; margin: 0; }
+
+  h2 { font-family: Georgia, "Times New Roman", serif; font-size: 21px; font-weight: 500; margin: 0 0 4px; }
+  .section { margin-top: 36px; }
+  .section > .kicker { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin-bottom: 2px; }
+  .section > .lede { color: var(--ink-2); margin: 2px 0 16px; max-width: 68ch; }
+
+  .card { background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px; padding: 20px; }
+
+  /* Hero */
+  .hero { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 14px; }
+  @media (max-width: 800px) { .hero { grid-template-columns: 1fr; } }
+  .stat .label { font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  .stat .value { font-size: 34px; font-weight: 700; letter-spacing: -0.01em; margin: 4px 0 2px; }
+  .stat .sub { color: var(--ink-2); font-size: 13.5px; }
+  .stat.primary { background: var(--accent-wash); border-color: transparent; }
+  .stat.primary .value { color: var(--accent-ink); font-size: 40px; }
+  .stat .value.neg { color: var(--bad); }
+
+  /* Lever */
+  .lever { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+  .lever-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .lever-row strong { font-size: 17px; }
+  input[type="range"] { width: 100%; accent-color: var(--accent); height: 28px; }
+  .lever .hint { font-size: 13px; color: var(--ink-2); }
+
+  /* Inputs */
+  .cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  @media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
+  .field-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+  .field { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .field label { color: var(--ink-2); font-size: 14px; flex: 1; }
+  .field input[type="number"], .field input[type="date"] {
+    width: 110px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px;
+    background: var(--bg); color: var(--ink); font: inherit; font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+  .field input:focus-visible, input[type="range"]:focus-visible, button:focus-visible, .toggle input:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+  .card-total { display: flex; justify-content: space-between; border-top: 1px solid var(--line); margin-top: 14px; padding-top: 10px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .toggle { display: flex; gap: 8px; align-items: flex-start; margin-top: 12px; font-size: 13.5px; color: var(--ink-2); }
+  .toggle input { accent-color: var(--accent); margin-top: 3px; }
+  button.reset {
+    margin-top: 16px; background: none; border: 1px solid var(--line); border-radius: 6px;
+    color: var(--ink-2); font: inherit; font-size: 13px; padding: 6px 12px; cursor: pointer;
+  }
+  button.reset:hover { border-color: var(--accent); color: var(--accent-ink); }
+
+  /* Debts */
+  .debt-row { display: grid; grid-template-columns: 18px 1fr 110px; gap: 10px; align-items: center; }
+  .debt-row .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--debt); }
+  .debt-row.paid .dot { background: var(--save); }
+  .debt-note { font-size: 13px; color: var(--muted); margin-top: 10px; }
+
+  /* Milestones */
+  .journey { display: flex; flex-direction: column; }
+  .mile { display: grid; grid-template-columns: 26px 1fr auto; gap: 14px; align-items: baseline; padding: 10px 0; }
+  .mile + .mile { border-top: 1px dashed var(--line); }
+  .mile .mark { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--axis); align-self: center; position: relative; }
+  .mile.hit .mark { border-color: var(--save); background: var(--save); }
+  .mile.hit .mark::after { content: "✓"; position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-size: 12px; font-weight: 700; }
+  .mile .what { font-weight: 600; }
+  .mile .why { color: var(--ink-2); font-size: 13.5px; }
+  .mile .when { font-variant-numeric: tabular-nums; color: var(--accent-ink); font-weight: 600; white-space: nowrap; }
+  .mile .when.pending { color: var(--muted); font-weight: 400; }
+
+  /* Chart */
+  .chart-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .legend { display: flex; gap: 18px; font-size: 13px; color: var(--ink-2); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+  .chart-box { position: relative; margin-top: 8px; }
+  .chart-box svg { display: block; width: 100%; height: auto; }
+  .tip {
+    position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--line);
+    border-radius: 8px; padding: 8px 10px; font-size: 12.5px; box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+    display: none; min-width: 150px; z-index: 2;
+  }
+  .tip .t-month { font-weight: 700; margin-bottom: 2px; }
+  .tip .t-row { display: flex; justify-content: space-between; gap: 14px; font-variant-numeric: tabular-nums; color: var(--ink-2); }
+  .tip .t-row b { color: var(--ink); font-weight: 600; }
+
+  /* Table */
+  .table-scroll { overflow-x: auto; margin-top: 8px; }
+  table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 13.5px; }
+  th { text-align: right; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  th:first-child, td:first-child { text-align: left; }
+  td { padding: 7px 10px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+  td.event { text-align: left; white-space: normal; color: var(--accent-ink); font-weight: 600; font-variant-numeric: normal; }
+  tr.boost td:first-child::after { content: " ·3 checks"; color: var(--accent-ink); font-size: 11px; font-weight: 700; }
+  tr.free-row td { background: var(--accent-wash); }
+
+  .warn { display: none; margin-top: 14px; border-left: 3px solid var(--bad); padding: 8px 12px; background: var(--surface); color: var(--ink-2); font-size: 14px; border-radius: 0 8px 8px 0; }
+  .warn.show { display: block; }
+  .warn b { color: var(--bad); }
+
+  .playbook { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 800px) { .playbook { grid-template-columns: 1fr; } }
+  .playbook h3 { font-size: 15px; margin: 0 0 6px; }
+  .playbook p, .playbook li { color: var(--ink-2); font-size: 14px; }
+  .playbook ul { margin: 6px 0 0; padding-left: 18px; }
+  .playbook li { margin-bottom: 4px; }
+
+  footer { margin-top: 40px; border-top: 1px solid var(--line); padding-top: 14px; color: var(--muted); font-size: 12.5px; max-width: 75ch; }
+  @media (prefers-reduced-motion: no-preference) {
+    .stat .value { transition: color 0.2s ease; }
+  }
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <div class="eyebrow">Personal plan · biweekly pay + lease commission</div>
+    <h1>Freedom Ledger</h1>
+    <p>Your road from <strong id="totalDebtHead">$3,782.51</strong> in debt to a funded emergency cushion — built on your real paydays. Slide the lease counter to see how much commission shortens the trip. Everything is editable and saves in your browser.</p>
+  </header>
+
+  <section class="hero">
+    <div class="card stat primary">
+      <div class="label">Debt-free</div>
+      <div class="value" id="statDebtFree">—</div>
+      <div class="sub" id="statDebtFreeSub">—</div>
+      <div class="lever">
+        <div class="lever-row">
+          <strong>Leases signed / month</strong>
+          <strong id="leaseCount">2 · +$200/mo</strong>
+        </div>
+        <input type="range" id="leases" min="0" max="8" step="1" value="2" aria-label="Leases signed per month">
+        <div class="hint" id="leaseHint">Every lease at 10% ≈ $100 of extra firepower.</div>
+      </div>
+    </div>
+    <div class="card stat">
+      <div class="label">$3,000 emergency fund</div>
+      <div class="value" id="statEF">—</div>
+      <div class="sub" id="statEFSub">—</div>
+    </div>
+    <div class="card stat">
+      <div class="label">Monthly attack power</div>
+      <div class="value" id="statPower">—</div>
+      <div class="sub" id="statPowerSub">income − essentials, typical month</div>
+    </div>
+  </section>
+
+  <div class="warn" id="warnNeg"><b>Your essentials cost more than a 2-paycheck month brings in.</b> The plan below only moves on 3-paycheck months and commission — trimming any essential or signing one more lease per month changes everything.</div>
+
+  <section class="section">
+    <div class="kicker">Step 1 · Know your numbers</div>
+    <h2>Your money, itemized</h2>
+    <p class="lede">These start at the figures you gave me. Adjust anything — the whole plan recalculates instantly.</p>
+    <div class="cols">
+      <div class="card">
+        <h2 style="font-size:17px">Income</h2>
+        <div class="field-list">
+          <div class="field"><label for="paycheck">Take-home per paycheck</label><input type="number" id="paycheck" value="1544" min="0" step="1"></div>
+          <div class="field"><label for="commission">Commission per lease</label><input type="number" id="commission" value="100" min="0" step="10"></div>
+          <div class="field"><label for="nextPayday">Next payday</label><input type="date" id="nextPayday" value="2026-07-24"></div>
+        </div>
+        <div class="card-total"><span>Typical month (2 checks)</span><span id="incomeTotal">$3,088</span></div>
+        <div class="toggle">
+          <input type="checkbox" id="extraChecks" checked>
+          <label for="extraChecks">Count 3-paycheck months. Biweekly pay means two months a year deliver a whole extra check — <b id="extraMonths">—</b>. Those months are your rocket fuel.</label>
+        </div>
+      </div>
+      <div class="card">
+        <h2 style="font-size:17px">Essentials</h2>
+        <div class="field-list" id="expenseList"></div>
+        <div class="card-total"><span>Total essentials</span><span id="expenseTotal">$2,805</span></div>
+      </div>
+      <div class="card">
+        <h2 style="font-size:17px">Debts · snowball order</h2>
+        <div class="field-list" id="debtList"></div>
+        <div class="card-total"><span>Total debt</span><span id="debtTotal">$3,782.51</span></div>
+        <div class="debt-note">Snowball = smallest first. Quick wins keep you going; a green dot means the plan clears it.</div>
+        <button class="reset" id="reset">Reset to my original numbers</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="kicker">Step 2 · Watch the lines cross</div>
+    <h2>The projection</h2>
+    <p class="lede">Debt falls, savings rise. Hover any month for the detail.</p>
+    <div class="card">
+      <div class="chart-head">
+        <div class="legend">
+          <span><i style="background:var(--debt)"></i>Debt remaining</span>
+          <span><i style="background:var(--save)"></i>Savings built</span>
+        </div>
+        <div class="legend" style="color:var(--muted)" id="chartRange"></div>
+      </div>
+      <div class="chart-box">
+        <svg id="chart" viewBox="0 0 760 300" role="img" aria-label="Projection of debt remaining falling to zero and savings rising to the emergency-fund goal, by month"></svg>
+        <div class="tip" id="tip"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="kicker">Step 3 · The journey</div>
+    <h2>Milestones on the road</h2>
+    <div class="card journey" id="journey"></div>
+  </section>
+
+  <section class="section">
+    <div class="kicker">Step 4 · Month by month</div>
+    <h2>Payoff calendar</h2>
+    <p class="lede">Exactly where every dollar goes each month, with your 3-check months marked.</p>
+    <div class="card">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>Month</th><th>Income</th><th>Essentials</th><th>To debt</th><th>To savings</th><th>Debt left</th><th>Saved</th><th style="text-align:left">Milestone</th></tr>
+          </thead>
+          <tbody id="calendar"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="kicker">Step 5 · Keep the engine running</div>
+    <h2>The playbook</h2>
+    <div class="playbook">
+      <div class="card">
+        <h3>Rules that make this work</h3>
+        <ul>
+          <li><b>Commission never touches lifestyle.</b> Every lease bonus goes straight to the current target — debt first, then savings.</li>
+          <li><b>3-paycheck months are invisible.</b> Live on two checks every month; the third is a pure payoff bomb.</li>
+          <li><b>Pay the target the day you're paid.</b> Money that sits in checking gets spent.</li>
+          <li><b>One win at a time.</b> Snowball order means your first debt dies in month one — momentum is the strategy.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>After the emergency fund</h3>
+        <p>The journey doesn't stop at $3,000. Same habit, new targets:</p>
+        <ul>
+          <li><b>Cushion:</b> grow savings to 3 months of essentials (<span id="cushionAmt">≈ $8,415</span>).</li>
+          <li><b>Grow:</b> open a TFSA and redirect the monthly surplus into investing.</li>
+          <li><b>Level up income:</b> at your numbers, each extra lease per month is worth <span id="leaseWorth">≈ $1,200/yr</span> — the cheapest raise you'll ever get.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    Assumptions: take-home figures, no interest modeled on debts (add a little margin if yours carry high rates — knock out the highest-rate one first if two are close in size), paydays every 14 days from your next payday, commission at 10% of an average lease ≈ $100. Data lives only in this browser.
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var DEFAULTS = {
+    paycheck: 1544,
+    commission: 100,
+    leases: 2,
+    nextPayday: "2026-07-24",
+    extraChecks: true,
+    efGoal: 3000,
+    expenses: [
+      ["Rent", 1425],
+      ["Utilities ($335 biweekly)", 670],
+      ["Groceries", 300],
+      ["Transportation", 200],
+      ["Phone", 60],
+      ["Misc essentials", 150]
+    ],
+    debts: [
+      ["Debt 1", 246],
+      ["Debt 2", 420],
+      ["Debt 3", 1280],
+      ["Debt 4", 1836.51]
+    ]
+  };
+  var STORE_KEY = "freedom-ledger-v1";
+  var MAX_MONTHS = 72;
+
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  var state = clone(DEFAULTS);
+  try {
+    var saved = JSON.parse(localStorage.getItem(STORE_KEY));
+    if (saved && saved.expenses && saved.debts) state = saved;
+  } catch (e) {}
+
+  function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {} }
+
+  var fmt0 = new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 });
+  var fmt2 = new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD", minimumFractionDigits: 2 });
+  function money(v, cents) { return (cents ? fmt2 : fmt0).format(v); }
+  var MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  function label(d) { return MONTHS[d.getMonth()] + " " + d.getFullYear(); }
+  function shortLabel(d) { return d.getMonth() === 0 ? MONTHS[0] + " ’" + String(d.getFullYear()).slice(2) : MONTHS[d.getMonth()]; }
+
+  // ---- Simulation ----
+  function simulate() {
+    var essentials = state.expenses.reduce(function (s, e) { return s + (+e[1] || 0); }, 0);
+    var debts = state.debts.map(function (d) { return { name: d[0], bal: +d[1] || 0 }; })
+      .sort(function (a, b) { return a.bal - b.bal; });
+    var totalDebt = debts.reduce(function (s, d) { return s + d.bal; }, 0);
+
+    // Paychecks per calendar month, from the anchor payday, every 14 days.
+    var anchor = new Date((state.nextPayday || DEFAULTS.nextPayday) + "T12:00:00");
+    if (isNaN(anchor)) anchor = new Date(DEFAULTS.nextPayday + "T12:00:00");
+    var start = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 1); // first full month after anchor
+    var checksByMonth = {};
+    var p = new Date(anchor);
+    for (var i = 0; i < 26 * 8; i++) {
+      var key = p.getFullYear() + "-" + p.getMonth();
+      checksByMonth[key] = (checksByMonth[key] || 0) + 1;
+      p.setDate(p.getDate() + 14);
+    }
+
+    var rows = [], events = [], savings = 0, freeMonth = null, efMonth = null;
+    var commission = state.leases * state.commission;
+
+    for (var m = 0; m < MAX_MONTHS; m++) {
+      var d = new Date(start.getFullYear(), start.getMonth() + m, 1);
+      var checks = checksByMonth[d.getFullYear() + "-" + d.getMonth()] || 2;
+      if (!state.extraChecks) checks = 2;
+      var income = checks * state.paycheck + commission;
+      var pool = Math.max(0, income - essentials);
+      var toDebt = 0, toSave = 0, rowEvents = [];
+
+      for (var j = 0; j < debts.length; j++) {
+        if (pool <= 0) break;
+        if (debts[j].bal > 0.005) {
+          var pay = Math.min(debts[j].bal, pool);
+          debts[j].bal -= pay; pool -= pay; toDebt += pay;
+          if (debts[j].bal <= 0.005) {
+            debts[j].bal = 0;
+            rowEvents.push(debts[j].name + " paid off");
+          }
+        }
+      }
+      var remaining = debts.reduce(function (s, x) { return s + x.bal; }, 0);
+      if (remaining <= 0.005 && freeMonth === null && totalDebt > 0) {
+        freeMonth = m; rowEvents.push("DEBT-FREE 🎉");
+      }
+      if (remaining <= 0.005 && pool > 0 && savings < state.efGoal) {
+        toSave = Math.min(pool, state.efGoal - savings);
+        savings += toSave; pool -= toSave;
+        if (savings >= state.efGoal - 0.005 && efMonth === null) {
+          efMonth = m; rowEvents.push("Emergency fund funded");
+        }
+      } else if (remaining <= 0.005 && pool > 0) {
+        toSave = pool; savings += toSave; pool = 0;
+      }
+
+      rows.push({
+        date: d, checks: checks, income: income, essentials: essentials,
+        toDebt: toDebt, toSave: toSave, debtLeft: remaining, saved: savings,
+        events: rowEvents, paidNames: rowEvents.filter(function (e) { return /paid off/.test(e); })
+      });
+      events = events.concat(rowEvents.map(function (e) { return { m: m, text: e }; }));
+      if (efMonth !== null && m >= efMonth + 2) break;
+    }
+    return {
+      rows: rows, essentials: essentials, totalDebt: totalDebt, commission: commission,
+      freeMonth: freeMonth, efMonth: efMonth,
+      basePower: 2 * state.paycheck + commission - essentials,
+      debtsSorted: debts
+    };
+  }
+
+  // ---- Rendering ----
+  var $ = function (id) { return document.getElementById(id); };
+
+  function renderInputs() {
+    $("paycheck").value = state.paycheck;
+    $("commission").value = state.commission;
+    $("nextPayday").value = state.nextPayday;
+    $("leases").value = state.leases;
+    $("extraChecks").checked = !!state.extraChecks;
+
+    var el = $("expenseList"); el.innerHTML = "";
+    state.expenses.forEach(function (e, i) {
+      var row = document.createElement("div"); row.className = "field";
+      var lab = document.createElement("label"); lab.textContent = e[0]; lab.htmlFor = "exp" + i;
+      var inp = document.createElement("input"); inp.type = "number"; inp.min = "0"; inp.step = "5";
+      inp.id = "exp" + i; inp.value = e[1];
+      inp.addEventListener("input", function () { state.expenses[i][1] = +inp.value || 0; update(); });
+      row.appendChild(lab); row.appendChild(inp); el.appendChild(row);
+    });
+
+    renderDebtInputs(null);
+  }
+
+  function renderDebtInputs(sim) {
+    var el = $("debtList"); el.innerHTML = "";
+    var order = state.debts.map(function (d, i) { return { i: i, bal: +d[1] || 0 }; })
+      .sort(function (a, b) { return a.bal - b.bal; });
+    order.forEach(function (o) {
+      var d = state.debts[o.i];
+      var row = document.createElement("div"); row.className = "debt-row";
+      if (sim && sim.freeMonth !== null) row.className += " paid";
+      var dot = document.createElement("span"); dot.className = "dot";
+      var lab = document.createElement("label"); lab.textContent = d[0]; lab.htmlFor = "debt" + o.i;
+      lab.style.cssText = "color:var(--ink-2);font-size:14px";
+      var inp = document.createElement("input"); inp.type = "number"; inp.min = "0"; inp.step = "1";
+      inp.id = "debt" + o.i; inp.value = d[1];
+      inp.style.cssText = "width:110px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit;text-align:right";
+      inp.addEventListener("input", function () { state.debts[o.i][1] = +inp.value || 0; update(); });
+      inp.addEventListener("blur", function () { update(true); });
+      row.appendChild(dot); row.appendChild(lab); row.appendChild(inp);
+      el.appendChild(row);
+    });
+  }
+
+  function renderStats(sim) {
+    var rows = sim.rows;
+    $("totalDebtHead").textContent = money(sim.totalDebt, true);
+    $("debtTotal").textContent = money(sim.totalDebt, true);
+    $("expenseTotal").textContent = money(sim.essentials);
+    $("incomeTotal").textContent = money(2 * state.paycheck);
+    $("leaseCount").textContent = state.leases + (state.leases === 1 ? " lease" : " leases") + " · +" + money(sim.commission) + "/mo";
+    $("leaseHint").textContent = state.leases === 0
+      ? "Slide right — commission is the difference between crawling and sprinting."
+      : "Every lease at 10% ≈ " + money(state.commission) + " of extra firepower.";
+
+    var power = sim.basePower;
+    $("statPower").textContent = money(power);
+    $("statPower").className = "value" + (power < 0 ? " neg" : "");
+    $("statPowerSub").textContent = "2 checks + commission − " + money(sim.essentials) + " essentials";
+    $("warnNeg").className = "warn" + (power <= 0 ? " show" : "");
+
+    if (sim.totalDebt <= 0) {
+      $("statDebtFree").textContent = "Now";
+      $("statDebtFreeSub").textContent = "No debt on the books — straight to savings.";
+    } else if (sim.freeMonth === null) {
+      $("statDebtFree").textContent = "—";
+      $("statDebtFreeSub").textContent = "Not within 6 years at these numbers. Trim an essential or add a lease.";
+    } else {
+      var fd = rows[sim.freeMonth].date;
+      $("statDebtFree").textContent = label(fd);
+      $("statDebtFreeSub").textContent = (sim.freeMonth + 1) + " month" + (sim.freeMonth ? "s" : "") + " from now · " + money(sim.totalDebt, true) + " destroyed";
+    }
+    if (sim.efMonth === null) {
+      $("statEF").textContent = "—";
+      $("statEFSub").textContent = "Funded after debt-free; not reached in this window.";
+    } else {
+      $("statEF").textContent = label(rows[sim.efMonth].date);
+      $("statEFSub").textContent = (sim.efMonth + 1) + " months from now, same monthly habit";
+    }
+
+    var extras = [];
+    rows.forEach(function (r) { if (r.checks > 2 && extras.length < 4) extras.push(label(r.date)); });
+    $("extraMonths").textContent = extras.length ? "next up: " + extras.slice(0, 2).join(" and ") : "none in this window";
+
+    $("cushionAmt").textContent = "≈ " + money(sim.essentials * 3);
+    $("leaseWorth").textContent = "≈ " + money(state.commission * 12) + "/yr";
+  }
+
+  function renderJourney(sim) {
+    var el = $("journey"); el.innerHTML = "";
+    var items = [];
+    sim.rows.forEach(function (r, m) {
+      r.paidNames.forEach(function (n) {
+        items.push({ what: n.replace(" paid off", "") + " — gone", why: "Snowball win", when: label(r.date), hit: true });
+      });
+    });
+    if (sim.freeMonth !== null) items.push({ what: "Debt-free", why: "Every dollar now works for you, not the past", when: label(sim.rows[sim.freeMonth].date), hit: true });
+    else if (sim.totalDebt > 0) items.push({ what: "Debt-free", why: "Not reached in this window — adjust the levers above", when: "—", hit: false });
+    if (sim.efMonth !== null) items.push({ what: money(state.efGoal) + " emergency fund", why: "One-crisis buffer between you and new debt", when: label(sim.rows[sim.efMonth].date), hit: true });
+    else items.push({ what: money(state.efGoal) + " emergency fund", why: "Starts the month after debt-free", when: "after debt-free", hit: false });
+    items.push({ what: "3-month cushion — " + money(sim.essentials * 3), why: "Real security: three months of essentials banked", when: "next target", hit: false });
+    items.push({ what: "Invest the surplus", why: "TFSA first — the habit that built this keeps building", when: "the horizon", hit: false });
+
+    items.forEach(function (it) {
+      var row = document.createElement("div"); row.className = "mile" + (it.hit ? " hit" : "");
+      row.innerHTML = '<span class="mark"></span><span><span class="what"></span><br><span class="why"></span></span><span class="when' + (it.hit ? "" : " pending") + '"></span>';
+      row.querySelector(".what").textContent = it.what;
+      row.querySelector(".why").textContent = it.why;
+      row.querySelector(".when").textContent = it.when;
+      el.appendChild(row);
+    });
+  }
+
+  function renderCalendar(sim) {
+    var tb = $("calendar"); tb.innerHTML = "";
+    sim.rows.forEach(function (r, m) {
+      var tr = document.createElement("tr");
+      if (r.checks > 2) tr.className = "boost";
+      if (r.events.some(function (e) { return /DEBT-FREE/.test(e); })) tr.className += " free-row";
+      function td(v, cls) { var c = document.createElement("td"); c.textContent = v; if (cls) c.className = cls; return c; }
+      tr.appendChild(td(label(r.date)));
+      tr.appendChild(td(money(r.income)));
+      tr.appendChild(td(money(r.essentials)));
+      tr.appendChild(td(r.toDebt ? money(r.toDebt, true) : "—"));
+      tr.appendChild(td(r.toSave ? money(r.toSave, true) : "—"));
+      tr.appendChild(td(money(r.debtLeft, true)));
+      tr.appendChild(td(money(r.saved, true)));
+      tr.appendChild(td(r.events.join(" · "), "event"));
+      tb.appendChild(tr);
+    });
+  }
+
+  // ---- Chart ----
+  var chartData = null;
+  function renderChart(sim) {
+    var svg = $("chart");
+    var rows = sim.rows;
+    var W = 760, H = 300, padL = 52, padR = 16, padT = 16, padB = 34;
+    var iw = W - padL - padR, ih = H - padT - padB;
+    var n = rows.length;
+    var maxY = Math.max(sim.totalDebt, state.efGoal, 1) * 1.06;
+    function x(i) { return padL + (n === 1 ? iw / 2 : (i / (n - 1)) * iw); }
+    function y(v) { return padT + ih - (v / maxY) * ih; }
+
+    var s = "";
+    // gridlines + y labels
+    var ticks = 4;
+    for (var t = 0; t <= ticks; t++) {
+      var v = (maxY / ticks) * t, yy = y(v);
+      s += '<line x1="' + padL + '" y1="' + yy + '" x2="' + (W - padR) + '" y2="' + yy + '" stroke="var(--grid)" stroke-width="1"/>';
+      s += '<text x="' + (padL - 8) + '" y="' + (yy + 4) + '" text-anchor="end" font-size="11" fill="var(--muted)">' +
+        (v >= 1000 ? "$" + (Math.round(v / 100) / 10) + "k" : "$" + Math.round(v)) + "</text>";
+    }
+    // x labels
+    var step = n > 30 ? 6 : n > 14 ? 3 : n > 8 ? 2 : 1;
+    for (var i = 0; i < n; i += step) {
+      s += '<text x="' + x(i) + '" y="' + (H - 10) + '" text-anchor="middle" font-size="11" fill="var(--muted)">' + shortLabel(rows[i].date) + "</text>";
+    }
+    // baseline
+    s += '<line x1="' + padL + '" y1="' + (padT + ih) + '" x2="' + (W - padR) + '" y2="' + (padT + ih) + '" stroke="var(--axis)" stroke-width="1"/>';
+
+    function path(get) {
+      var p = "";
+      rows.forEach(function (r, i) { p += (i ? "L" : "M") + x(i).toFixed(1) + "," + y(get(r)).toFixed(1); });
+      return p;
+    }
+    // savings area + line
+    var area = path(function (r) { return r.saved; }) + "L" + x(n - 1).toFixed(1) + "," + y(0) + "L" + x(0).toFixed(1) + "," + y(0) + "Z";
+    s += '<path d="' + area + '" fill="var(--save)" opacity="0.10"/>';
+    s += '<path d="' + path(function (r) { return r.saved; }) + '" fill="none" stroke="var(--save)" stroke-width="2"/>';
+    // debt line
+    s += '<path d="' + path(function (r) { return r.debtLeft; }) + '" fill="none" stroke="var(--debt)" stroke-width="2"/>';
+    // start point of debt
+    s += '<circle cx="' + x(0) + '" cy="' + y(rows[0].debtLeft) + '" r="3.5" fill="var(--debt)"/>';
+    // milestone dots
+    rows.forEach(function (r, i) {
+      if (r.paidNames.length || r.events.some(function (e) { return /DEBT-FREE/.test(e); })) {
+        s += '<circle cx="' + x(i) + '" cy="' + y(r.debtLeft) + '" r="4.5" fill="var(--debt)" stroke="var(--surface)" stroke-width="2"/>';
+      }
+      if (r.events.some(function (e) { return /Emergency fund/.test(e); })) {
+        s += '<circle cx="' + x(i) + '" cy="' + y(r.saved) + '" r="4.5" fill="var(--save)" stroke="var(--surface)" stroke-width="2"/>';
+      }
+    });
+    // direct labels at line ends
+    var last = rows[n - 1];
+    s += '<text x="' + (x(n - 1) - 4) + '" y="' + (y(last.saved) - 8) + '" text-anchor="end" font-size="11.5" font-weight="600" fill="var(--ink)">Saved ' + money(last.saved) + "</text>";
+    if (sim.freeMonth !== null) {
+      var fi = sim.freeMonth;
+      s += '<text x="' + Math.min(x(fi) + 6, W - padR - 60) + '" y="' + (y(0) - 8) + '" font-size="11.5" font-weight="600" fill="var(--ink)">Debt-free</text>';
+    }
+    // hover crosshair placeholder
+    s += '<line id="xhair" x1="0" y1="' + padT + '" x2="0" y2="' + (padT + ih) + '" stroke="var(--axis)" stroke-width="1" stroke-dasharray="3 3" style="display:none"/>';
+    s += '<rect x="' + padL + '" y="' + padT + '" width="' + iw + '" height="' + ih + '" fill="transparent" id="hover"/>';
+    svg.innerHTML = s;
+
+    $("chartRange").textContent = label(rows[0].date) + " → " + label(rows[n - 1].date);
+    chartData = { rows: rows, x: x, padL: padL, iw: iw, n: n, W: W };
+
+    var hover = svg.querySelector("#hover"), xh = svg.querySelector("#xhair"), tip = $("tip"), box = svg.parentElement;
+    function move(evt) {
+      var rect = svg.getBoundingClientRect();
+      var clientX = (evt.touches ? evt.touches[0].clientX : evt.clientX);
+      var sx = (clientX - rect.left) / rect.width * W;
+      var i = Math.round((sx - padL) / iw * (n - 1));
+      i = Math.max(0, Math.min(n - 1, i));
+      var r = rows[i];
+      xh.setAttribute("x1", x(i)); xh.setAttribute("x2", x(i)); xh.style.display = "";
+      tip.style.display = "block";
+      tip.innerHTML = '<div class="t-month"></div>' +
+        '<div class="t-row"><span>Debt left</span><b></b></div>' +
+        '<div class="t-row"><span>Saved</span><b></b></div>' +
+        '<div class="t-row"><span>Paid this month</span><b></b></div>';
+      tip.querySelector(".t-month").textContent = label(r.date) + (r.checks > 2 ? " · 3 checks" : "");
+      var bs = tip.querySelectorAll(".t-row b");
+      bs[0].textContent = money(r.debtLeft, true);
+      bs[1].textContent = money(r.saved);
+      bs[2].textContent = money(r.toDebt + r.toSave);
+      var px = x(i) / W * rect.width;
+      var left = px + 14;
+      if (left + tip.offsetWidth > rect.width) left = px - tip.offsetWidth - 14;
+      tip.style.left = Math.max(0, left) + "px";
+      tip.style.top = "24px";
+    }
+    function out() { xh.style.display = "none"; tip.style.display = "none"; }
+    hover.addEventListener("mousemove", move);
+    hover.addEventListener("touchstart", move, { passive: true });
+    hover.addEventListener("touchmove", move, { passive: true });
+    hover.addEventListener("mouseleave", out);
+    hover.addEventListener("touchend", out);
+  }
+
+  // ---- Wire up ----
+  function update(reDebts) {
+    var sim = simulate();
+    renderStats(sim);
+    renderJourney(sim);
+    renderCalendar(sim);
+    renderChart(sim);
+    if (reDebts) renderDebtInputs(sim);
+    save();
+  }
+
+  $("leases").addEventListener("input", function () { state.leases = +this.value; update(); });
+  $("paycheck").addEventListener("input", function () { state.paycheck = +this.value || 0; update(); });
+  $("commission").addEventListener("input", function () { state.commission = +this.value || 0; update(); });
+  $("nextPayday").addEventListener("change", function () { state.nextPayday = this.value || DEFAULTS.nextPayday; update(); });
+  $("extraChecks").addEventListener("change", function () { state.extraChecks = this.checked; update(); });
+  $("reset").addEventListener("click", function () {
+    state = clone(DEFAULTS);
+    renderInputs(); update(true);
+  });
+
+  renderInputs();
+  update(true);
+})();
+</script>
+
+</body>
+</html>
