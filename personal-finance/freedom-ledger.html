@@ -266,8 +266,7 @@
   .tr-month { font-family: Georgia, "Times New Roman", serif; font-size: 20px; min-width: 170px; text-align: center; }
   .mnav { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line); background: none; color: var(--ink-2); font-size: 18px; line-height: 1; cursor: pointer; }
   .mnav:hover { border-color: var(--accent); color: var(--accent-ink); }
-  .tr-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 6px; }
-  @media (max-width: 560px) { .tr-tiles { grid-template-columns: 1fr; } }
+  .tr-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 6px; }
   .tr-tiles > div { background: var(--tile); border-radius: 12px; padding: 12px 14px; }
   .tr-tiles span { display: block; font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 700; margin-bottom: 2px; }
   .tr-tiles b { font-size: 20px; font-variant-numeric: tabular-nums; }
@@ -476,6 +475,11 @@
         <div><span>Income</span><b id="trIncome">$0</b></div>
         <div><span>Spending + debt + savings</span><b id="trExpense">$0</b></div>
         <div><span>Net</span><b id="trNet">$0</b></div>
+        <div><span>In hand, month end</span><b id="trEnd">$0</b></div>
+      </div>
+      <div class="field" style="max-width:360px;margin:6px 0 4px">
+        <label for="trStart">Rollover to start (cash entering July)</label>
+        <input type="number" id="trStart" value="2805" min="0" step="1">
       </div>
       <div class="tr-plan" id="trPlan"></div>
       <button class="tr-addbtn" id="trPrefill" type="button" style="margin-bottom:12px">⤓ Prefill this month from your budget</button>
@@ -1260,6 +1264,22 @@
       var now = new Date();
       state.trackerMonth = now.getFullYear() + "-" + now.getMonth();
     }
+    if (state.startBalance == null) state.startBalance = 2805;
+  }
+  function trChron() {
+    return Object.keys(state.tracker).filter(trHasData).sort(function (a, b) {
+      var pa = a.split("-"), pb = b.split("-");
+      return (+pa[0] * 12 + +pa[1]) - (+pb[0] * 12 + +pb[1]);
+    });
+  }
+  function trBalances() {
+    var run = +state.startBalance || 0, start = {}, end = {};
+    trChron().forEach(function (k) {
+      start[k] = run;
+      run += trTotals(k).net;
+      end[k] = run;
+    });
+    return { start: start, end: end };
   }
   function trMonthParts() { var p = state.trackerMonth.split("-"); return { y: +p[0], m: +p[1] }; }
   function trData() { return state.tracker[state.trackerMonth] || {}; }
@@ -1283,6 +1303,7 @@
     var mp = trMonthParts();
     $("trMonthLabel").textContent = ["January","February","March","April","May","June","July","August","September","October","November","December"][mp.m] + " " + mp.y;
 
+    $("trStart").value = state.startBalance;
     var el = $("trGroups"); el.innerHTML = "";
     TR_GROUPS.forEach(function (g) {
       var cats = state.trackerCats.filter(function (c) { return c.group === g; });
@@ -1349,6 +1370,11 @@
     $("trExpense").textContent = money(t.out);
     $("trNet").textContent = (t.net >= 0 ? "+" : "−") + money(Math.abs(t.net));
     $("trNet").className = t.net > 0 ? "pos" : t.net < 0 ? "neg" : "";
+    var bal = trBalances(), mk = state.trackerMonth;
+    var carried = bal.start[mk] != null ? bal.start[mk] : (+state.startBalance || 0);
+    var endBal = bal.end[mk] != null ? bal.end[mk] : carried + t.net;
+    $("trEnd").textContent = money(endBal);
+    $("trEnd").className = endBal < 0 ? "neg" : "";
 
     // group subtotals
     var el = $("trGroups");
@@ -1362,7 +1388,9 @@
 
     // plan-vs-actual line
     var mp = trMonthParts(), planLine = "";
-    if (!trHasData(state.trackerMonth)) {
+    if (trHasData(mk)) {
+      planLine = "Carried in " + money(carried) + " → this month ends with " + money(endBal) + " in hand. ";
+    } else {
       planLine = "Nothing logged for this month yet — tap a group below to expand it and enter what actually happened. The year table fills in as you log months. ";
     }
     if (window.__lastSim) {
@@ -1402,7 +1430,15 @@
       cells += "<td><b>" + money(tot) + "</b></td><td>" + (cnt ? money(tot / cnt) : "—") + "</td></tr>";
       return cells;
     }).join("");
-    tbl.innerHTML = "<thead>" + head + "</thead><tbody>" + rows + "</tbody>";
+    var bal = trBalances(), lastEnd = null;
+    var balCells = "<tr><td>In hand</td>";
+    for (var bm = 0; bm < 12; bm++) {
+      var bk = mp.y + "-" + bm;
+      if (bal.end[bk] != null) { lastEnd = bal.end[bk]; balCells += "<td>" + money(bal.end[bk]) + "</td>"; }
+      else balCells += "<td>—</td>";
+    }
+    balCells += "<td><b>" + (lastEnd != null ? money(lastEnd) : "—") + "</b></td><td>—</td></tr>";
+    tbl.innerHTML = "<thead>" + head + "</thead><tbody>" + rows + balCells + "</tbody>";
   }
 
   function trFindOrCreate(group, nameRe, fallbackName) {
@@ -1448,6 +1484,10 @@
     });
     if (row && row.toSave > 0) trSetM(mkey, trFindOrCreate("Savings", /emergency/i, "Emergency fund"), row.toSave);
   }
+  $("trStart").addEventListener("input", function () {
+    state.startBalance = +this.value || 0;
+    trUpdateTotals(); save();
+  });
   $("trPrefill").addEventListener("click", function () {
     trApplyBudget(state.trackerMonth);
     trOpen = {};
