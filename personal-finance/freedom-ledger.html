@@ -1287,7 +1287,8 @@
       var cats = state.trackerCats.filter(function (c) { return c.group === g; });
       var grp = document.createElement("div"); grp.className = "tr-group";
       var hasVal = cats.some(function (c) { return trAmt(c.id) > 0; });
-      if (trOpen[g] || (trOpen[g] === undefined && hasVal)) grp.className += " open";
+      var defaultOpen = hasVal || (g === "Income" && !trHasData(state.trackerMonth));
+      if (trOpen[g] || (trOpen[g] === undefined && defaultOpen)) grp.className += " open";
 
       var head = document.createElement("button"); head.className = "tr-ghead"; head.type = "button";
       head.innerHTML = '<span class="chev">▶</span><span class="gname"></span><span class="gsum" data-gsum></span>';
@@ -1360,6 +1361,9 @@
 
     // plan-vs-actual line
     var mp = trMonthParts(), planLine = "";
+    if (!trHasData(state.trackerMonth)) {
+      planLine = "Nothing logged for this month yet — tap a group below to expand it and enter what actually happened. The year table fills in as you log months. ";
+    }
     if (window.__lastSim) {
       var row = window.__lastSim.rows.find(function (r) { return r.date.getFullYear() === mp.y && r.date.getMonth() === mp.m; });
       if (row) {
@@ -1368,7 +1372,7 @@
         state.trackerCats.forEach(function (c) {
           if (c.group === "Obligations" || c.group === "Savings" || /course/i.test(c.name)) actualGoals += trAmt(c.id);
         });
-        planLine = "Plan called for " + money(planned) + " toward debt, course, and savings this month" +
+        planLine += "Plan called for " + money(planned) + " toward debt, course, and savings this month" +
           (actualGoals ? " — you've logged " + money(actualGoals) + "." : ".");
       }
     }
@@ -1414,9 +1418,8 @@
   // ---- Theme toggle (standalone only; the artifact viewer has its own) ----
   (function () {
     var tb = $("themeBtn");
-    var inFrame = false;
-    try { inFrame = window !== window.top; } catch (e) { inFrame = true; }
-    if (inFrame) { tb.style.display = "none"; return; }
+    // Hide only inside the claude.ai artifact viewer, which has its own theme toggle.
+    if (typeof window.__FRAME_PREAMBLE !== "undefined") { tb.style.display = "none"; return; }
     var savedT = null;
     try { savedT = localStorage.getItem("fl-theme"); } catch (e) {}
     if (savedT === "dark" || savedT === "light") document.documentElement.dataset.theme = savedT;
