@@ -469,7 +469,7 @@
       ["Misc essentials", 150]
     ],
     debts: [
-      ["goPeer loan", 1279.17, 27.5, 72.93],
+      ["goPeer loan", 1279.17, 27.9, 72.93],
       ["MacBook Pro financing", 1836.51, 0, 331.88]
     ]
   };
@@ -526,10 +526,14 @@
   // one-time: "Debt 3" identified as the goPeer loan — $1,279.17 principal, ~27.5% APR, $33.66 biweekly
   if (!state.gopeerTagged) {
     state.debts = state.debts.map(function (d) {
-      return +d[1] === 1280 ? ["goPeer loan", 1279.17, 27.5, 72.93] : d;
+      return +d[1] === 1280 ? ["goPeer loan", 1279.17, 27.9, 72.93] : d;
     });
     state.gopeerTagged = true;
   }
+  // exact rate confirmed from the Jul 31 statement: 13.74 interest / 1279.17 biweekly ≈ 27.9% APR
+  state.debts = state.debts.map(function (d) {
+    return /gopeer/i.test(d[0]) && +d[2] === 27.5 ? [d[0], d[1], 27.9, d[3]] : d;
+  });
   // saved states from before minimum-payment support: recognize the MacBook by its balance
   if (state.debts.some(function (d) { return d[1] === 1836.51 && !d[3]; })) {
     state.debts = state.debts.map(function (d) {
