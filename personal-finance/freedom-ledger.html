@@ -458,7 +458,7 @@
     extraChecks: true,
     efGoal: 3000,
     strategy: "snowball",
-    startCash: 573,
+    startCash: 417,
     course: { on: true, amt: 414, months: 10, when: "now" },
     expenses: [
       ["Rent", 1425],
@@ -469,7 +469,7 @@
       ["Misc essentials", 150]
     ],
     debts: [
-      ["goPeer loan", 1279.17, 27.9, 72.93],
+      ["goPeer loan", 1122.89, 27.9, 72.93],
       ["MacBook Pro financing", 1836.51, 0, 331.88]
     ]
   };
@@ -534,6 +534,14 @@
   state.debts = state.debts.map(function (d) {
     return /gopeer/i.test(d[0]) && +d[2] === 27.5 ? [d[0], d[1], 27.9, d[3]] : d;
   });
+  // one-time: 156.28 extra paid to goPeer on Jul 18, 2026
+  if (!state.gopeerJul18) {
+    state.debts = state.debts.map(function (d) {
+      return /gopeer/i.test(d[0]) && +d[1] === 1279.17 ? [d[0], 1122.89, d[2], d[3]] : d;
+    });
+    if (state.startCash === 573) state.startCash = 417;
+    state.gopeerJul18 = true;
+  }
   // saved states from before minimum-payment support: recognize the MacBook by its balance
   if (state.debts.some(function (d) { return d[1] === 1836.51 && !d[3]; })) {
     state.debts = state.debts.map(function (d) {
