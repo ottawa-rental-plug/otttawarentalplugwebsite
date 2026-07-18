@@ -185,6 +185,14 @@
   .advice-item.warn-a .adot { background: var(--bad); }
   .advice-item.info-a .adot { background: var(--axis); }
   .advice-item b { color: var(--ink); }
+  .deploy-row { display: grid; grid-template-columns: 24px 1fr auto; gap: 10px; padding: 9px 0; align-items: baseline; }
+  .deploy-row + .deploy-row { border-top: 1px dashed var(--line); }
+  .deploy-row .n { width: 20px; height: 20px; border-radius: 50%; background: var(--accent-wash); color: var(--accent-ink); font-size: 11px; font-weight: 700; display: grid; place-items: center; align-self: center; }
+  .deploy-row .what { font-weight: 600; }
+  .deploy-row .why-d { color: var(--ink-2); font-size: 13px; font-weight: 400; }
+  .deploy-row .amt { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+  .deploy-total { display: flex; justify-content: space-between; border-top: 1px solid var(--line); margin-top: 8px; padding-top: 10px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .deploy-note { font-size: 13px; color: var(--muted); margin-top: 10px; }
 
   /* Debts */
   .debt-item { padding: 8px 0; }
@@ -337,6 +345,11 @@
     <div class="kicker">Step 2 · Big moves</div>
     <h2>The course & the counsel</h2>
     <p class="lede">Your real estate course is an investment in bigger commissions — the advisor weighs it against your debt in real time.</p>
+    <div class="card" style="margin-bottom:14px">
+      <h2 style="font-size:17px" id="deployTitle">Month one: deploying your spare cash</h2>
+      <p class="lede" style="margin-bottom:4px" id="deployLede">Do these in order, in one sitting, once the money has actually landed. Bills and minimums are already covered by your float — this is pure firepower.</p>
+      <div id="deployList"></div>
+    </div>
     <div class="moves">
       <div class="card">
         <h2 style="font-size:17px">Real estate course</h2>
@@ -806,6 +819,63 @@
     $("courseSummary").textContent = txt;
   }
 
+  function renderDeploy() {
+    var el = $("deployList"); el.innerHTML = "";
+    var cash = +state.startCash || 0;
+    $("deployTitle").textContent = cash > 0
+      ? "Month one: deploying your " + money(cash)
+      : "Month one: deploying your spare cash";
+    if (cash <= 0) {
+      el.innerHTML = '<div class="deploy-note">Enter an amount in "Spare cash to deploy" (Income card) and your step-by-step game plan appears here.</div>';
+      return;
+    }
+    var steps = [], total = cash;
+    if (state.course.on && state.course.when === "now") {
+      var c = Math.min(+state.course.amt || 0, cash);
+      if (c > 0) {
+        steps.push({ what: "Enroll in the real estate course", why: "First payment — the appreciating asset goes first", amt: c });
+        cash -= c;
+      }
+    }
+    var order = state.debts.map(function (d) { return { name: d[0], bal: +d[1] || 0, apr: +d[2] || 0 }; })
+      .filter(function (d) { return d.bal > 0; });
+    order.sort(state.strategy === "avalanche"
+      ? function (a, b) { return (b.apr - a.apr) || (a.bal - b.bal); }
+      : function (a, b) { return a.bal - b.bal; });
+    for (var i = 0; i < order.length && cash > 0.005; i++) {
+      var pay = Math.min(order[i].bal, cash);
+      steps.push({
+        what: "Pay " + order[i].name,
+        why: pay >= order[i].bal - 0.005
+          ? "Paid in full — gone forever" + (order[i].apr > 0 ? " (kills the " + order[i].apr + "% interest)" : "")
+          : "Partial — balance drops to " + money(order[i].bal - pay, true),
+        amt: pay
+      });
+      cash -= pay;
+    }
+    if (cash > 0.005) {
+      steps.push({ what: "Left over → emergency fund", why: "Debts are covered; the rest starts your cushion", amt: cash });
+    }
+    steps.forEach(function (s, i) {
+      var row = document.createElement("div"); row.className = "deploy-row";
+      var n = document.createElement("span"); n.className = "n"; n.textContent = i + 1;
+      var mid = document.createElement("span");
+      var what = document.createElement("span"); what.className = "what"; what.textContent = s.what;
+      var why = document.createElement("span"); why.className = "why-d"; why.textContent = s.why;
+      mid.appendChild(what); mid.appendChild(document.createElement("br")); mid.appendChild(why);
+      var amt = document.createElement("span"); amt.className = "amt"; amt.textContent = money(s.amt, true);
+      row.appendChild(n); row.appendChild(mid); row.appendChild(amt);
+      el.appendChild(row);
+    });
+    var tot = document.createElement("div"); tot.className = "deploy-total";
+    tot.innerHTML = "<span>Total deployed</span><span></span>";
+    tot.lastChild.textContent = money(total, true);
+    el.appendChild(tot);
+    var note = document.createElement("div"); note.className = "deploy-note";
+    note.textContent = "After deploying: zero the paid-off accounts, freeze any cleared cards, update the balances above, and set spare cash back to 0 — the calendar below carries on from there.";
+    el.appendChild(note);
+  }
+
   function renderAdvisor(sim) {
     var el = $("advisor"); el.innerHTML = "";
     var items = [];
@@ -1051,6 +1121,7 @@
     renderStats(sim);
     renderStrategy(sim);
     renderCourse(sim);
+    renderDeploy();
     renderAdvisor(sim);
     renderJourney(sim);
     renderCalendar(sim);
