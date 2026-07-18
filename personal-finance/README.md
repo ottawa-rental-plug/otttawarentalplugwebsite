@@ -24,3 +24,9 @@ What it does:
   timing, one more lease, payoff order) and flags budget pressure points.
 - Shows a projection chart, a milestone timeline, and a month-by-month
   payoff calendar.
+- Includes a monthly actuals logbook (tracker): income and spending by
+  category group with month navigation, group subtotals, a
+  year-at-a-glance table with totals and averages, and a plan-vs-actual
+  comparison line.
+- Has a built-in light/dark theme toggle (standalone file; the hosted
+  artifact follows the viewer's theme).

@@ -26,6 +26,7 @@
     --grid: #e1e0d9;
     --axis: #c3c2b7;
     --tile: #f1f1ec;
+    --shadow: 0 1px 2px rgba(19,19,17,0.05), 0 10px 30px rgba(19,19,17,0.05);
   }
   @media (prefers-color-scheme: dark) {
     :root:where(:not([data-theme="light"])) {
@@ -47,6 +48,7 @@
       --grid: #2c2c2a;
       --axis: #383835;
       --tile: #222220;
+      --shadow: 0 1px 0 rgba(255,255,255,0.03) inset;
     }
   }
   :root[data-theme="dark"] {
@@ -68,6 +70,7 @@
     --grid: #2c2c2a;
     --axis: #383835;
     --tile: #222220;
+    --shadow: 0 1px 0 rgba(255,255,255,0.03) inset;
   }
   :root[data-theme="light"] {
     color-scheme: light;
@@ -88,37 +91,50 @@
     --grid: #e1e0d9;
     --axis: #c3c2b7;
     --tile: #f1f1ec;
+    --shadow: 0 1px 2px rgba(19,19,17,0.05), 0 10px 30px rgba(19,19,17,0.05);
   }
 
   * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
   body {
     margin: 0;
     background: var(--bg);
     color: var(--ink);
-    font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+    font: 15.5px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 1060px; margin: 0 auto; padding: 32px 20px 80px; }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 44px 22px 100px; }
 
-  header.masthead { padding: 8px 0 24px; border-bottom: 1px solid var(--line); margin-bottom: 28px; }
-  .eyebrow { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-ink); font-weight: 600; }
-  h1 { font-family: Georgia, "Times New Roman", serif; font-size: clamp(28px, 4.5vw, 40px); font-weight: 500; margin: 6px 0 8px; text-wrap: balance; }
-  .masthead p { color: var(--ink-2); max-width: 62ch; margin: 0; }
+  header.masthead { padding: 8px 0 30px; border-bottom: 1px solid var(--line); margin-bottom: 32px; }
+  .eyebrow { font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent-ink); font-weight: 600; }
+  h1 { font-family: Georgia, "Times New Roman", serif; font-size: clamp(32px, 5vw, 46px); font-weight: 500; margin: 8px 0 10px; text-wrap: balance; letter-spacing: -0.01em; }
+  .masthead p { color: var(--ink-2); max-width: 60ch; margin: 0; font-size: 16px; }
 
-  h2 { font-family: Georgia, "Times New Roman", serif; font-size: 21px; font-weight: 500; margin: 0 0 4px; }
-  .section { margin-top: 36px; }
-  .section > .kicker { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin-bottom: 2px; }
-  .section > .lede { color: var(--ink-2); margin: 2px 0 16px; max-width: 68ch; }
+  h2 { font-family: Georgia, "Times New Roman", serif; font-size: 22px; font-weight: 500; margin: 0 0 4px; }
+  .section { margin-top: 48px; }
+  .section > .kicker { font-size: 11.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); font-weight: 700; margin-bottom: 4px; }
+  .section > .lede { color: var(--ink-2); margin: 4px 0 18px; max-width: 66ch; }
 
-  .card { background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px; padding: 20px; }
+  .card { background: var(--surface); border: 1px solid var(--hairline); border-radius: 16px; padding: 24px; box-shadow: var(--shadow); }
+
+  .theme-btn {
+    position: fixed; top: 18px; right: 18px; z-index: 20;
+    width: 42px; height: 42px; border-radius: 50%;
+    background: var(--surface); border: 1px solid var(--line); color: var(--ink-2);
+    font-size: 17px; line-height: 1; cursor: pointer; box-shadow: var(--shadow);
+    display: grid; place-items: center;
+  }
+  .theme-btn:hover { color: var(--accent-ink); border-color: var(--accent); }
 
   /* Hero */
-  .hero { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 14px; }
-  @media (max-width: 800px) { .hero { grid-template-columns: 1fr; } }
-  .stat .label { font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
-  .stat .value { font-size: 34px; font-weight: 700; letter-spacing: -0.01em; margin: 4px 0 2px; }
+  .hero { display: grid; grid-template-columns: 1.35fr 1fr; gap: 16px; }
+  .hero .stat:nth-child(1) { grid-row: 1 / 3; }
+  @media (max-width: 720px) { .hero { grid-template-columns: 1fr; } .hero .stat:nth-child(1) { grid-row: auto; } }
+  .stat .label { font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  .stat .value { font-size: 32px; font-weight: 700; letter-spacing: -0.015em; margin: 6px 0 2px; font-variant-numeric: tabular-nums; }
   .stat .sub { color: var(--ink-2); font-size: 13.5px; }
-  .stat.primary { background: var(--accent-wash); border-color: transparent; }
-  .stat.primary .value { color: var(--accent-ink); font-size: 40px; }
+  .stat.primary { background: linear-gradient(160deg, var(--accent-wash), transparent 140%); border-color: var(--accent); border-width: 1px; }
+  .stat.primary .value { color: var(--accent-ink); font-size: 46px; }
   .stat .value.neg { color: var(--bad); }
 
   /* Lever */
@@ -130,16 +146,16 @@
   .lever .whatif { font-size: 13px; color: var(--accent-ink); font-weight: 600; }
 
   /* Inputs */
-  .cols { display: grid; grid-template-columns: 1fr 1fr 1.15fr; gap: 14px; }
-  @media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
-  .field-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+  .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(272px, 1fr)); gap: 16px; }
+  .field-list { display: flex; flex-direction: column; gap: 9px; margin-top: 14px; }
   .field { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   .field label { color: var(--ink-2); font-size: 14px; flex: 1; }
   .field input[type="number"], .field input[type="date"], .debt-row input[type="number"] {
-    width: 100px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px;
+    width: 106px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px;
     background: var(--bg); color: var(--ink); font: inherit; font-variant-numeric: tabular-nums;
     text-align: right;
   }
+  .field input:hover, .debt-nums input:hover { border-color: var(--axis); }
   input.name-in {
     flex: 1; min-width: 0; padding: 6px 8px; border: 1px solid transparent; border-radius: 6px;
     background: transparent; color: var(--ink-2); font: inherit; font-size: 14px;
@@ -167,14 +183,14 @@
   button.x:hover { color: var(--bad); }
 
   /* Strategy segmented control */
-  .seg { display: flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; margin-top: 14px; }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin-top: 14px; }
   .seg button { flex: 1; padding: 7px 8px; background: none; border: none; font: inherit; font-size: 13px; color: var(--ink-2); cursor: pointer; }
   .seg button.on { background: var(--accent-wash); color: var(--accent-ink); font-weight: 600; }
   .seg-hint { font-size: 13px; color: var(--muted); margin-top: 8px; }
 
   /* Big moves + advisor */
-  .moves { display: grid; grid-template-columns: 1fr 1.4fr; gap: 14px; }
-  @media (max-width: 900px) { .moves { grid-template-columns: 1fr; } }
+  .moves { display: grid; grid-template-columns: 1fr 1.4fr; gap: 16px; }
+  @media (max-width: 820px) { .moves { grid-template-columns: 1fr; } }
   .radio-row { display: flex; gap: 16px; margin-top: 10px; font-size: 13.5px; color: var(--ink-2); flex-wrap: wrap; }
   .radio-row label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
   .radio-row input { accent-color: var(--accent); }
@@ -202,7 +218,7 @@
   .debt-item.paid .dot { background: var(--save); }
   .debt-nums { display: grid; grid-template-columns: 1.2fr 0.9fr 1.1fr; gap: 6px; margin: 4px 0 0 18px; }
   .debt-nums > div > span { display: block; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin-bottom: 2px; }
-  .debt-nums input { width: 100%; padding: 6px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); font: inherit; font-variant-numeric: tabular-nums; text-align: right; }
+  .debt-nums input { width: 100%; padding: 8px 8px; border: 1px solid var(--line); border-radius: 9px; background: var(--bg); color: var(--ink); font: inherit; font-variant-numeric: tabular-nums; text-align: right; }
   .debt-note { font-size: 13px; color: var(--muted); margin-top: 10px; }
 
   /* Milestones */
@@ -235,13 +251,43 @@
 
   /* Table */
   .table-scroll { overflow-x: auto; margin-top: 8px; }
-  table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 13.5px; }
+  table { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 13.5px; }
+  td.event { min-width: 180px; }
   th { text-align: right; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--line); }
   th:first-child, td:first-child { text-align: left; }
-  td { padding: 7px 10px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+  td { padding: 9px 10px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+  tbody tr:hover td { background: var(--tile); }
   td.event { text-align: left; white-space: normal; color: var(--accent-ink); font-weight: 600; font-variant-numeric: normal; }
   tr.boost td:first-child::after { content: " ·3 checks"; color: var(--accent-ink); font-size: 11px; font-weight: 700; }
   tr.free-row td { background: var(--accent-wash); }
+
+  /* Tracker */
+  .tr-head { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 16px; }
+  .tr-month { font-family: Georgia, "Times New Roman", serif; font-size: 20px; min-width: 170px; text-align: center; }
+  .mnav { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line); background: none; color: var(--ink-2); font-size: 18px; line-height: 1; cursor: pointer; }
+  .mnav:hover { border-color: var(--accent); color: var(--accent-ink); }
+  .tr-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 6px; }
+  @media (max-width: 560px) { .tr-tiles { grid-template-columns: 1fr; } }
+  .tr-tiles > div { background: var(--tile); border-radius: 12px; padding: 12px 14px; }
+  .tr-tiles span { display: block; font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 700; margin-bottom: 2px; }
+  .tr-tiles b { font-size: 20px; font-variant-numeric: tabular-nums; }
+  .tr-tiles b.neg { color: var(--bad); }
+  .tr-tiles b.pos { color: var(--good); }
+  .tr-plan { font-size: 13px; color: var(--muted); margin: 4px 0 14px; }
+  .tr-group { border-top: 1px solid var(--line); }
+  .tr-ghead { display: grid; grid-template-columns: 16px 1fr auto; gap: 8px; align-items: center; padding: 11px 0; cursor: pointer; background: none; border: none; width: 100%; text-align: left; font: inherit; color: inherit; }
+  .tr-ghead .chev { color: var(--muted); font-size: 11px; }
+  .tr-group.open .chev { transform: rotate(90deg); }
+  .tr-ghead .gname { font-weight: 600; font-size: 14.5px; }
+  .tr-ghead .gsum { font-variant-numeric: tabular-nums; color: var(--ink-2); font-weight: 600; }
+  .tr-rows { display: none; flex-direction: column; gap: 8px; padding: 2px 0 14px 24px; }
+  .tr-group.open .tr-rows { display: flex; }
+  .tr-row { display: grid; grid-template-columns: 1fr 106px 20px; gap: 8px; align-items: center; }
+  .tr-row input[type="number"] { width: 100%; padding: 7px 9px; border: 1px solid var(--line); border-radius: 9px; background: var(--bg); color: var(--ink); font: inherit; text-align: right; font-variant-numeric: tabular-nums; }
+  .tr-row input[type="number"]:hover { border-color: var(--axis); }
+  button.tr-addbtn { margin: 0 0 0 0; width: auto; align-self: flex-start; background: none; border: 1px dashed var(--line); border-radius: 8px; color: var(--accent-ink); font: inherit; font-size: 12.5px; padding: 5px 10px; cursor: pointer; }
+  button.tr-addbtn:hover { border-color: var(--accent); }
+  #trYear td:first-child { font-weight: 600; }
 
   .warn { display: none; margin-top: 14px; border-left: 3px solid var(--bad); padding: 8px 12px; background: var(--surface); color: var(--ink-2); font-size: 14px; border-radius: 0 8px 8px 0; }
   .warn.show { display: block; }
@@ -260,6 +306,7 @@
   }
 </style>
 
+<button class="theme-btn" id="themeBtn" aria-label="Toggle light and dark mode">◐</button>
 <div class="wrap">
   <header class="masthead">
     <div class="eyebrow">Personal plan · biweekly pay + 10% lease commission</div>
@@ -416,7 +463,33 @@
   </section>
 
   <section class="section">
-    <div class="kicker">Step 6 · Keep the engine running</div>
+    <div class="kicker">Step 6 · Track the actuals</div>
+    <h2>The logbook</h2>
+    <p class="lede">The plan above is the forecast — this is the record. Log what actually came in and went out each month, by category. Savings count as "paid to yourself," so Net is what's left after everything, including saving.</p>
+    <div class="card">
+      <div class="tr-head">
+        <button class="mnav" id="mPrev" aria-label="Previous month">‹</button>
+        <div class="tr-month" id="trMonthLabel">—</div>
+        <button class="mnav" id="mNext" aria-label="Next month">›</button>
+      </div>
+      <div class="tr-tiles">
+        <div><span>Income</span><b id="trIncome">$0</b></div>
+        <div><span>Spending + debt + savings</span><b id="trExpense">$0</b></div>
+        <div><span>Net</span><b id="trNet">$0</b></div>
+      </div>
+      <div class="tr-plan" id="trPlan"></div>
+      <div id="trGroups"></div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h2 style="font-size:17px" id="trYearTitle">Year at a glance</h2>
+      <div class="table-scroll">
+        <table id="trYear"></table>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="kicker">Step 7 · Keep the engine running</div>
     <h2>The playbook</h2>
     <div class="playbook">
       <div class="card">
@@ -1160,9 +1233,211 @@
     hover.addEventListener("touchend", out);
   }
 
+  // ---- Tracker (monthly actuals logbook) ----
+  var TR_DEFAULT_CATS = [
+    ["Income", "Paycheques"], ["Income", "Lease commission"], ["Income", "Side income"], ["Income", "Other income"],
+    ["Household", "Rent"], ["Household", "Utilities"], ["Household", "Internet"], ["Household", "Maintenance/supplies"],
+    ["Transportation", "Fuel"], ["Transportation", "Auto insurance"], ["Transportation", "Transit/rideshare"], ["Transportation", "Parking"], ["Transportation", "Repairs"],
+    ["Health", "Insurance/prescriptions"], ["Health", "Doctor/dentist"], ["Health", "Gym"],
+    ["Charity & Gifts", "Gifts"], ["Charity & Gifts", "Donations"],
+    ["Living", "Groceries"], ["Living", "Dining/eating out"], ["Living", "Personal care"], ["Living", "Clothing"], ["Living", "Phone"], ["Living", "Course/education"],
+    ["Entertainment", "Streaming/music"], ["Entertainment", "Games/hobbies"], ["Entertainment", "Movies/events"],
+    ["Travel", "Trips"], ["Travel", "Hotels/flights"],
+    ["Obligations", "goPeer loan"], ["Obligations", "MacBook (Affirm)"], ["Obligations", "Student loan (NSLSC)"], ["Obligations", "Bank fees"], ["Obligations", "Other debt"],
+    ["Savings", "Emergency fund"], ["Savings", "RESP"], ["Savings", "TFSA/investments"]
+  ];
+  var TR_GROUPS = ["Income", "Household", "Transportation", "Health", "Charity & Gifts", "Living", "Entertainment", "Travel", "Obligations", "Savings"];
+  var trOpen = {};
+
+  function ensureTracker() {
+    if (!state.trackerCats) {
+      state.trackerCats = TR_DEFAULT_CATS.map(function (c, i) { return { id: "c" + i, group: c[0], name: c[1] }; });
+      state.trackerNextId = TR_DEFAULT_CATS.length;
+    }
+    if (!state.tracker) state.tracker = {};
+    if (!state.trackerMonth) {
+      var now = new Date();
+      state.trackerMonth = now.getFullYear() + "-" + now.getMonth();
+    }
+  }
+  function trMonthParts() { var p = state.trackerMonth.split("-"); return { y: +p[0], m: +p[1] }; }
+  function trData() { return state.tracker[state.trackerMonth] || {}; }
+  function trAmt(id, mkey) { var d = state.tracker[mkey || state.trackerMonth]; return d ? (+d[id] || 0) : 0; }
+  function trTotals(mkey) {
+    var inc = 0, out = 0;
+    state.trackerCats.forEach(function (c) {
+      var v = trAmt(c.id, mkey);
+      if (c.group === "Income") inc += v; else out += v;
+    });
+    return { inc: inc, out: out, net: inc - out };
+  }
+  function trHasData(mkey) {
+    var d = state.tracker[mkey]; if (!d) return false;
+    for (var k in d) { if (+d[k]) return true; }
+    return false;
+  }
+
+  function renderTracker(sim) {
+    ensureTracker();
+    var mp = trMonthParts();
+    $("trMonthLabel").textContent = ["January","February","March","April","May","June","July","August","September","October","November","December"][mp.m] + " " + mp.y;
+
+    var el = $("trGroups"); el.innerHTML = "";
+    TR_GROUPS.forEach(function (g) {
+      var cats = state.trackerCats.filter(function (c) { return c.group === g; });
+      var grp = document.createElement("div"); grp.className = "tr-group";
+      var hasVal = cats.some(function (c) { return trAmt(c.id) > 0; });
+      if (trOpen[g] || (trOpen[g] === undefined && hasVal)) grp.className += " open";
+
+      var head = document.createElement("button"); head.className = "tr-ghead"; head.type = "button";
+      head.innerHTML = '<span class="chev">▶</span><span class="gname"></span><span class="gsum" data-gsum></span>';
+      head.querySelector(".gname").textContent = g;
+      head.addEventListener("click", function () {
+        trOpen[g] = !grp.classList.contains("open") ? true : false;
+        grp.classList.toggle("open");
+      });
+      grp.appendChild(head);
+
+      var rows = document.createElement("div"); rows.className = "tr-rows";
+      cats.forEach(function (c) {
+        var row = document.createElement("div"); row.className = "tr-row";
+        var name = document.createElement("input"); name.className = "name-in"; name.type = "text"; name.value = c.name;
+        name.setAttribute("aria-label", "Category name");
+        name.addEventListener("input", function () { c.name = name.value; save(); });
+        var amt = document.createElement("input"); amt.type = "number"; amt.min = "0"; amt.step = "1";
+        var v = trAmt(c.id); amt.value = v || ""; amt.placeholder = "0";
+        amt.setAttribute("aria-label", c.name + " amount for this month");
+        amt.addEventListener("input", function () {
+          if (!state.tracker[state.trackerMonth]) state.tracker[state.trackerMonth] = {};
+          state.tracker[state.trackerMonth][c.id] = +amt.value || 0;
+          trUpdateTotals(); save();
+        });
+        var x = document.createElement("button"); x.className = "x"; x.type = "button"; x.textContent = "×";
+        x.setAttribute("aria-label", "Remove " + c.name);
+        x.addEventListener("click", function () {
+          state.trackerCats = state.trackerCats.filter(function (o) { return o.id !== c.id; });
+          for (var mk in state.tracker) delete state.tracker[mk][c.id];
+          renderTracker(sim); trUpdateTotals(); save();
+        });
+        row.appendChild(name); row.appendChild(amt); row.appendChild(x);
+        rows.appendChild(row);
+      });
+      var add = document.createElement("button"); add.className = "tr-addbtn"; add.type = "button";
+      add.textContent = "+ Add to " + g.toLowerCase();
+      add.addEventListener("click", function () {
+        var id = "c" + (state.trackerNextId++);
+        state.trackerCats.push({ id: id, group: g, name: "New item" });
+        trOpen[g] = true;
+        renderTracker(sim); save();
+        var last = grp.parentElement.querySelectorAll(".tr-group");
+        // focus the new row's name input
+        var inputs = el.querySelectorAll(".name-in");
+        for (var i = 0; i < inputs.length; i++) if (inputs[i].value === "New item") { inputs[i].focus(); inputs[i].select(); break; }
+      });
+      rows.appendChild(add);
+      grp.appendChild(rows);
+      el.appendChild(grp);
+    });
+    trUpdateTotals(sim);
+  }
+
+  function trUpdateTotals(sim) {
+    var t = trTotals();
+    $("trIncome").textContent = money(t.inc);
+    $("trExpense").textContent = money(t.out);
+    $("trNet").textContent = (t.net >= 0 ? "+" : "−") + money(Math.abs(t.net));
+    $("trNet").className = t.net > 0 ? "pos" : t.net < 0 ? "neg" : "";
+
+    // group subtotals
+    var el = $("trGroups");
+    var groups = el.querySelectorAll(".tr-group");
+    TR_GROUPS.forEach(function (g, i) {
+      var sum = 0;
+      state.trackerCats.forEach(function (c) { if (c.group === g) sum += trAmt(c.id); });
+      var span = groups[i] && groups[i].querySelector("[data-gsum]");
+      if (span) span.textContent = sum ? money(sum) : "—";
+    });
+
+    // plan-vs-actual line
+    var mp = trMonthParts(), planLine = "";
+    if (window.__lastSim) {
+      var row = window.__lastSim.rows.find(function (r) { return r.date.getFullYear() === mp.y && r.date.getMonth() === mp.m; });
+      if (row) {
+        var planned = row.toDebt + row.toSave + row.toCourse;
+        var actualGoals = 0;
+        state.trackerCats.forEach(function (c) {
+          if (c.group === "Obligations" || c.group === "Savings" || /course/i.test(c.name)) actualGoals += trAmt(c.id);
+        });
+        planLine = "Plan called for " + money(planned) + " toward debt, course, and savings this month" +
+          (actualGoals ? " — you've logged " + money(actualGoals) + "." : ".");
+      }
+    }
+    $("trPlan").textContent = planLine;
+
+    renderTrackerYear();
+  }
+
+  function renderTrackerYear() {
+    var mp = trMonthParts();
+    $("trYearTitle").textContent = mp.y + " at a glance";
+    var tbl = $("trYear");
+    var head = "<tr><th style='text-align:left'>" + mp.y + "</th>";
+    for (var m = 0; m < 12; m++) head += "<th>" + MONTHS[m] + "</th>";
+    head += "<th>Total</th><th>Avg</th></tr>";
+    var rows = [["Income", "inc"], ["Out", "out"], ["Net", "net"]].map(function (r) {
+      var cells = "<tr><td>" + r[0] + "</td>", tot = 0, cnt = 0;
+      for (var m = 0; m < 12; m++) {
+        var mk = mp.y + "-" + m;
+        if (trHasData(mk)) {
+          var t = trTotals(mk); var v = t[r[1]];
+          tot += v; cnt++;
+          cells += "<td>" + money(v) + "</td>";
+        } else cells += "<td>—</td>";
+      }
+      cells += "<td><b>" + money(tot) + "</b></td><td>" + (cnt ? money(tot / cnt) : "—") + "</td></tr>";
+      return cells;
+    }).join("");
+    tbl.innerHTML = "<thead>" + head + "</thead><tbody>" + rows + "</tbody>";
+  }
+
+  $("mPrev").addEventListener("click", function () {
+    var mp = trMonthParts(); var d = new Date(mp.y, mp.m - 1, 1);
+    state.trackerMonth = d.getFullYear() + "-" + d.getMonth();
+    renderTracker(window.__lastSim); save();
+  });
+  $("mNext").addEventListener("click", function () {
+    var mp = trMonthParts(); var d = new Date(mp.y, mp.m + 1, 1);
+    state.trackerMonth = d.getFullYear() + "-" + d.getMonth();
+    renderTracker(window.__lastSim); save();
+  });
+
+  // ---- Theme toggle (standalone only; the artifact viewer has its own) ----
+  (function () {
+    var tb = $("themeBtn");
+    var inFrame = false;
+    try { inFrame = window !== window.top; } catch (e) { inFrame = true; }
+    if (inFrame) { tb.style.display = "none"; return; }
+    var savedT = null;
+    try { savedT = localStorage.getItem("fl-theme"); } catch (e) {}
+    if (savedT === "dark" || savedT === "light") document.documentElement.dataset.theme = savedT;
+    function current() {
+      return document.documentElement.dataset.theme ||
+        (window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    }
+    function setIcon() { tb.textContent = current() === "dark" ? "☀" : "☾"; tb.title = current() === "dark" ? "Switch to light mode" : "Switch to dark mode"; }
+    tb.addEventListener("click", function () {
+      var next = current() === "dark" ? "light" : "dark";
+      document.documentElement.dataset.theme = next;
+      try { localStorage.setItem("fl-theme", next); } catch (e) {}
+      setIcon();
+    });
+    setIcon();
+  })();
+
   // ---- Wire up ----
   function update(reDebts) {
     var sim = simulate();
+    window.__lastSim = sim;
     renderStats(sim);
     renderStrategy(sim);
     renderCourse(sim);
@@ -1171,6 +1446,7 @@
     renderJourney(sim);
     renderCalendar(sim);
     renderChart(sim);
+    renderTracker(sim);
     if (reDebts) renderDebtInputs(sim);
     save();
   }
