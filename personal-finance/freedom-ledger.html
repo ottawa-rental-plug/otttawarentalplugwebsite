@@ -553,7 +553,8 @@
       ["Utilities ($335 biweekly)", 670],
       ["Groceries", 300],
       ["Transportation", 200],
-      ["Phone", 60],
+      ["Phone (Rogers)", 71],
+      ["Student loan (NSLSC)", 66],
       ["Misc essentials", 150]
     ],
     debts: [
@@ -635,6 +636,16 @@
     return /gopeer/i.test(d[0]) && +d[1] === 1122.89 ? [d[0], 1119.89, d[2], d[3]] : d;
   });
   if (state.startCash === 417) state.startCash = 414;
+  // audit fix: the June statement shows NSLSC (66/mo) and Rogers (~71/mo) as real recurring bills
+  if (!state.auditFix1) {
+    if (!state.expenses.some(function (e) { return /nslsc|student/i.test(e[0]); })) {
+      state.expenses.push(["Student loan (NSLSC)", 66]);
+    }
+    state.expenses = state.expenses.map(function (e) {
+      return /^phone$/i.test(e[0]) && +e[1] === 60 ? ["Phone (Rogers)", 71] : e;
+    });
+    state.auditFix1 = true;
+  }
   // saved states from before minimum-payment support: recognize the MacBook by its balance
   if (state.debts.some(function (d) { return d[1] === 1836.51 && !d[3]; })) {
     state.debts = state.debts.map(function (d) {
@@ -1471,6 +1482,7 @@
       else if (/grocer/i.test(n)) cat = trFindOrCreate("Living", /grocer/i, "Groceries");
       else if (/transport/i.test(n)) cat = trFindOrCreate("Transportation", /fuel|transport/i, "Fuel");
       else if (/phone/i.test(n)) cat = trFindOrCreate("Living", /phone/i, "Phone");
+      else if (/student|nslsc/i.test(n)) cat = trFindOrCreate("Obligations", /student|nslsc/i, "Student loan (NSLSC)");
       else if (/misc/i.test(n)) cat = trFindOrCreate("Living", /personal care|misc/i, "Personal care");
       else cat = trFindOrCreate("Household", new RegExp(n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), n);
       trSetM(mkey, cat, amt);
@@ -1585,7 +1597,8 @@
   update(true);
 
   // ---- One-time logbook seed: July through December 2026 from the budget constants; June stays empty ----
-  if (!state.logSeed2) {
+  // logSeed3 re-runs the seed after the NSLSC/Rogers audit corrections.
+  if (!state.logSeed3) {
     ensureTracker();
     delete state.tracker["2026-5"];
     for (var smi = 6; smi <= 11; smi++) {
@@ -1594,6 +1607,7 @@
       trApplyBudget(smk);
     }
     state.logSeed2 = true;
+    state.logSeed3 = true;
     state.trackerMonth = "2026-6";
     trOpen = {};
     renderTracker(window.__lastSim);
