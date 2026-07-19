@@ -513,8 +513,8 @@
         <div><span>In hand, month end</span><b id="trEnd">$0</b></div>
       </div>
       <div class="field" style="max-width:360px;margin:6px 0 4px">
-        <label for="trStart">Rollover to start (cash entering July)</label>
-        <input type="number" id="trStart" value="2805" min="0" step="1">
+        <label for="trStart">Rollover to start (cash entering your first logged month)</label>
+        <input type="number" id="trStart" value="2150" min="0" step="1">
       </div>
       <div class="tr-plan" id="trPlan"></div>
       <button class="tr-addbtn" id="trPrefill" type="button" style="margin-bottom:12px">⤓ Prefill this month from your budget</button>
@@ -608,11 +608,11 @@
     avgRent: 2000,
     commRate: 10,
     leases: 2,
-    nextPayday: "2026-07-24",
+    nextPayday: "2026-07-30",
     extraChecks: true,
     efGoal: 3000,
     strategy: "snowball",
-    startCash: 414,
+    startCash: 0,
     course: { on: true, amt: 414, months: 10, when: "now" },
     expenses: [
       ["Rent", 1425],
@@ -663,6 +663,14 @@
       state.debts.push(["Visa credit card", 400, 19.99, 10]);
     }
     state.visaAdded = true;
+  }
+  // reality check Jul 19: paydays are actually Jul 30 / Aug 13 (biweekly), the July money
+  // is a survival bridge (course paid from it directly), and ~2,150 carries into August.
+  if (!state.realityJul19) {
+    if (state.nextPayday === "2026-07-24") state.nextPayday = "2026-07-30";
+    if (state.startCash === 414 || state.startCash === 573) state.startCash = 0;
+    state.startBalance = 2150;
+    state.realityJul19 = true;
   }
   // one-time: Visa ($400) and the $246 loan were paid off on Jul 18, 2026
   if (!state.jul18Paid) {
@@ -1399,7 +1407,7 @@
       var now = new Date();
       state.trackerMonth = now.getFullYear() + "-" + now.getMonth();
     }
-    if (state.startBalance == null) state.startBalance = 2805;
+    if (state.startBalance == null) state.startBalance = 2150;
   }
   function trChron() {
     return Object.keys(state.tracker).filter(trHasData).sort(function (a, b) {
@@ -1896,17 +1904,20 @@
   update(true);
 
   // ---- One-time logbook seed: July through December 2026 from the budget constants; June stays empty ----
-  // logSeed3 re-runs the seed after the NSLSC/Rogers audit corrections.
-  if (!state.logSeed3) {
+  // logSeed4: after the Jul-30 payday correction, constants run August-December
+  // (December is the 3-cheque month now); July stays open for real-life logging.
+  if (!state.logSeed4) {
     ensureTracker();
     delete state.tracker["2026-5"];
-    for (var smi = 6; smi <= 11; smi++) {
+    delete state.tracker["2026-6"];
+    for (var smi = 7; smi <= 11; smi++) {
       var smk = "2026-" + smi;
       state.tracker[smk] = {};
       trApplyBudget(smk);
     }
     state.logSeed2 = true;
     state.logSeed3 = true;
+    state.logSeed4 = true;
     state.trackerMonth = "2026-6";
     trOpen = {};
     renderTracker(window.__lastSim);
