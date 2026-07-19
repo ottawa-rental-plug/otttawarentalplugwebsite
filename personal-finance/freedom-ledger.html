@@ -776,10 +776,7 @@
       if (!state.extraChecks) checks = 2;
       var cash = m === 0 ? startCash : 0;
       var income = checks * state.paycheck + commission + cash;
-      // Utilities ride each paycheque: a 3-cheque month carries a third biweekly hit.
-      var utilBw = state.expenses.find(function (e) { return /biweekly/i.test(e[0]); });
-      var monthEssentials = essentials + (checks > 2 && utilBw ? (+utilBw[1] || 0) / 2 : 0);
-      var pool = Math.max(0, income - monthEssentials);
+      var pool = Math.max(0, income - essentials);
       var toDebt = 0, toSave = 0, toCourse = 0, interest = 0, rowEvents = [];
       if (cash > 0) rowEvents.push("Starting cash deployed");
 
@@ -840,7 +837,7 @@
       }
 
       rows.push({
-        date: d, checks: checks, income: income, essentials: monthEssentials,
+        date: d, checks: checks, income: income, essentials: essentials,
         toDebt: toDebt, toSave: toSave, toCourse: toCourse, debtLeft: remaining, saved: savings,
         events: rowEvents, paidNames: rowEvents.filter(function (e) { return /paid off/.test(e); })
       });
@@ -1609,7 +1606,6 @@
     add("Income", (row ? row.checks : 2) * state.paycheck + state.leases * perLease());
     state.expenses.forEach(function (e) {
       var n = e[0], amt = +e[1] || 0;
-      if (/biweekly/i.test(n) && row && row.checks > 2) amt = amt * 1.5;
       if (/rent|utilit/i.test(n)) add("Household", amt);
       else if (/transport/i.test(n)) add("Transportation", amt);
       else if (/student|nslsc/i.test(n)) add("Obligations", amt);
@@ -1648,7 +1644,6 @@
     state.expenses.forEach(function (e) {
       var n = e[0], amt = +e[1] || 0;
       var cat;
-      if (/biweekly/i.test(n) && row && row.checks > 2) amt = amt * 1.5; // third utilities hit rides the third cheque
       if (/rent/i.test(n)) cat = trFindOrCreate("Household", /rent/i, "Rent");
       else if (/utilit/i.test(n)) cat = trFindOrCreate("Household", /utilit/i, "Utilities");
       else if (/grocer/i.test(n)) cat = trFindOrCreate("Living", /grocer/i, "Groceries");
@@ -1911,7 +1906,7 @@
   // ---- One-time logbook seed: July through December 2026 from the budget constants; June stays empty ----
   // logSeed4: after the Jul-30 payday correction, constants run August-December
   // (December is the 3-cheque month now); July stays open for real-life logging.
-  if (!state.logSeed5) {
+  if (!state.logSeed6) {
     ensureTracker();
     delete state.tracker["2026-5"];
     delete state.tracker["2026-6"];
@@ -1924,6 +1919,7 @@
     state.logSeed3 = true;
     state.logSeed4 = true;
     state.logSeed5 = true;
+    state.logSeed6 = true;
     state.trackerMonth = "2026-6";
     trOpen = {};
     renderTracker(window.__lastSim);
