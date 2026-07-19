@@ -442,6 +442,11 @@
           <label><input type="radio" name="courseWhen" id="courseAfter">Start after debt-free</label>
         </div>
         <div class="computed" id="courseSummary"></div>
+        <div class="debt-note" style="margin-top:10px">
+          <b style="color:var(--ink)">Real fee schedule (Career College Group / RECO)</b> — paid per course as you reach it:<br>
+          C1 Essentials $600 · C2 Residential $685 · C3 Add'l Residential $360 · Sim 1 $740 · C4 Commercial $360 · Sim 2 $575 · C5 Getting Started $100 · Exams 6 × $120 = $720 → <b style="color:var(--ink)">$4,140 total</b>.<br>
+          The $414/mo here is the smoothed average — keep setting it aside as a course envelope, and pay each fee from the envelope when you enroll in that stage.
+        </div>
       </div>
       <div class="card">
         <h2 style="font-size:17px">Smart advisor</h2>
@@ -1101,6 +1106,11 @@
           items.push({ cls: "", html: "<b>Course timing trade-off:</b> starting now pushes debt-free back " + delay + " months (licensed by " + licNow + "); waiting keeps debt-free on pace but you're not licensed until " + licLater + ". If the license meaningfully raises your income, starting now still wins." });
         }
       }
+    }
+
+    // 2b. Course fee shape: Course 1 costs 600 up front
+    if (state.course.on && state.course.when === "now" && (+state.course.amt || 0) < 600) {
+      items.push({ cls: "info-a", html: "<b>Course 1 is $600 up front</b> — $186 more than one month's $414 set-aside. One lease commission covers the gap. After that, pay each stage from the envelope as you reach it; if you study faster than $414/mo accrues, top up from surplus — that just means you're finishing sooner. The exams ($120 each, paid to Meazure) come one at a time, so they never spike." });
     }
 
     // 3. Commission engine
