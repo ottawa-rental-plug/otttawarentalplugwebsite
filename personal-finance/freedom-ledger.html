@@ -530,9 +530,14 @@
         <button type="button" id="dailyAdd" style="align-self:flex-end;padding:9px 14px;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">Log</button>
       </div>
       <div id="dailyStatus"></div>
-      <div style="display:flex;gap:10px;margin-top:12px">
+      <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
         <button type="button" id="copyWeekBtn" style="padding:8px 12px;background:var(--ink-2);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600">📋 Copy this week</button>
+        <label style="padding:8px 12px;background:var(--accent);color:#fff;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;display:inline-block">
+          📤 Upload bank statement
+          <input type="file" id="weekStmtFile" accept=".csv" style="display:none">
+        </label>
       </div>
+      <div id="weekAnalysis" style="margin-top:14px"></div>
       <div id="dailyList" style="margin-top:12px;font-size:13px"></div>
     </div>
 
@@ -1940,6 +1945,112 @@
   });
   $("dailyAmt").addEventListener("keypress", function (e) {
     if (e.key === "Enter") $("dailyAdd").click();
+  });
+
+  $("weekStmtFile").addEventListener("change", function (e) {
+    var f = e.target.files[0];
+    if (!f) return;
+    var rd = new FileReader();
+    rd.onload = function (evt) {
+      try {
+        var txt = evt.target.result;
+        var lines = txt.split("\n").filter(function (l) { return l.trim().length > 0; });
+
+        var today = new Date();
+        var week = getWeekNumber(today);
+        if (!week) { alert("Outside bridge period."); return; }
+
+        var weekStart = new Date(2026, 6, 19 + (week - 1) * 7);
+        var weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekEnd.getDate() + 6);
+
+        var results = { byCategory: {}, total: 0, transactions: [] };
+        var categoryTotals = {};
+
+        // Parse CSV: look for lines with amounts (rough heuristic)
+        lines.forEach(function (line) {
+          var parts = line.split(",");
+          if (parts.length < 3) return;
+
+          var dateStr = parts[0].trim();
+          var desc = parts[1] ? parts[1].trim() : "";
+          var amt = parseFloat(parts[parts.length - 1].trim());
+
+          // Try to parse date
+          var txDate = new Date(dateStr + "T00:00:00");
+          if (isNaN(txDate.getTime())) return;
+
+          // Check if in this week
+          if (txDate < weekStart || txDate > weekEnd) return;
+          if (amt <= 0 || isNaN(amt)) return;
+
+          // Categorize using CSV_RULES
+          var cat = "Other";
+          for (var r = 0; r < CSV_RULES.length; r++) {
+            if (CSV_RULES[r][0].test(desc)) {
+              cat = CSV_RULES[r][1]; break;
+            }
+          }
+
+          if (!categoryTotals[cat]) categoryTotals[cat] = 0;
+          categoryTotals[cat] += amt;
+          results.total += amt;
+          results.transactions.push({ date: dateStr, desc: desc, cat: cat, amt: amt });
+        });
+
+        // Display analysis
+        var weekBudget = state.weeklyBudgets[week] || 0;
+        var pct = weekBudget > 0 ? (results.total / weekBudget) * 100 : 0;
+        var grade = pct <= 70 ? "A+" : pct <= 85 ? "A" : pct <= 100 ? "B" : pct <= 120 ? "C" : "F";
+        var gradeColor = grade[0] === "A" ? "#006300" : grade === "B" ? "#fab219" : "#b02a2a";
+
+        var html = "<div style='background:var(--tile);border-radius:10px;padding:14px;margin-bottom:12px'>";
+        html += "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:12px'>";
+        html += "<div><b>Week " + week + " Bank Statement Analysis</b></div>";
+        html += "<div style='font-size:28px;font-weight:700;color:" + gradeColor + "'>" + grade + "</div>";
+        html += "</div>";
+
+        html += "<div style='margin-bottom:10px;font-size:13px'>";
+        html += "<div>Actual spending: <b>$" + results.total.toFixed(2) + "</b></div>";
+        html += "<div>Budget: $" + weekBudget.toFixed(2) + "</div>";
+        html += "<div>Status: " + Math.round(pct) + "% of budget";
+        if (results.total > weekBudget) {
+          html += " · <span style='color:var(--bad);font-weight:600'>Over by $" + (results.total - weekBudget).toFixed(2) + "</span>";
+        } else {
+          html += " · <span style='color:var(--good);font-weight:600'>Under by $" + (weekBudget - results.total).toFixed(2) + "</span>";
+        }
+        html += "</div></div>";
+
+        html += "<div style='margin-bottom:10px;font-size:12px'>";
+        for (var cat in categoryTotals) {
+          html += "<div style='display:flex;justify-content:space-between;padding:4px 0'>";
+          html += "<span>" + cat + "</span>";
+          html += "<span>$" + categoryTotals[cat].toFixed(2) + "</span>";
+          html += "</div>";
+        }
+        html += "</div>";
+
+        if (results.total > weekBudget * 1.2) {
+          html += "<div style='background:rgba(176,42,42,0.1);border-left:3px solid var(--bad);padding:8px 12px;border-radius:0 6px 6px 0;color:var(--ink-2);font-size:12px'>";
+          html += "<b style='color:var(--bad)'>🚨 Way over budget!</b> You spent $" + (results.total - weekBudget).toFixed(2) + " more than planned. Check your habits.";
+          html += "</div>";
+        } else if (results.total > weekBudget) {
+          html += "<div style='background:rgba(250,178,25,0.1);border-left:3px solid #fab219;padding:8px 12px;border-radius:0 6px 6px 0;color:var(--ink-2);font-size:12px'>";
+          html += "<b style='color:#fab219'>⚠ Over budget.</b> You spent $" + (results.total - weekBudget).toFixed(2) + " more than allocated.";
+          html += "</div>";
+        } else if (results.total > weekBudget * 0.85) {
+          html += "<div style='background:rgba(250,178,25,0.1);border-left:3px solid #fab219;padding:8px 12px;border-radius:0 6px 6px 0;color:var(--ink-2);font-size:12px'>";
+          html += "<b style='color:#fab219'>⚠ Getting close.</b> You've used " + Math.round(pct) + "% of your weekly budget.";
+          html += "</div>";
+        }
+
+        $("weekAnalysis").innerHTML = html;
+        this.value = "";
+      } catch (e) {
+        alert("Couldn't read that CSV. Export your statement from TD as CSV and try again.");
+      }
+    };
+    rd.readAsText(f);
   });
 
   $("copyWeekBtn").addEventListener("click", function () {
