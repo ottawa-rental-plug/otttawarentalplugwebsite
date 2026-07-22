@@ -434,18 +434,34 @@
           <label for="courseOn"><b>I'm enrolling.</b> Payments come out before debt attacks — it's a committed bill.</label>
         </div>
         <div class="field-list">
-          <div class="field"><label for="courseAmt">Monthly payment</label><input type="number" id="courseAmt" value="414" min="0" step="1"></div>
+          <div class="field"><label for="courseAmt">Monthly payment</label><input type="number" id="courseAmt" value="478.50" min="0" step="0.01"></div>
           <div class="field"><label for="courseMonths">Number of months</label><input type="number" id="courseMonths" value="10" min="1" step="1"></div>
         </div>
         <div class="radio-row" role="radiogroup" aria-label="When to start the course">
-          <label><input type="radio" name="courseWhen" id="courseNow" checked>Start this month</label>
+          <label><input type="radio" name="courseWhen" id="courseNow">Start this month</label>
+          <label><input type="radio" name="courseWhen" id="courseDelayed" checked>Start in September (after Amazon course)</label>
           <label><input type="radio" name="courseWhen" id="courseAfter">Start after debt-free</label>
+        </div>
+        <div class="field" id="courseStartMonthField" style="display:none">
+          <label for="courseStartMonth">Start in month #</label>
+          <input type="number" id="courseStartMonth" value="2" min="0" max="60" step="1">
+          <small style="color:var(--muted)">(0=July, 1=August, 2=September, etc.)</small>
         </div>
         <div class="computed" id="courseSummary"></div>
         <div class="debt-note" style="margin-top:10px">
           <b style="color:var(--ink)">Real fee schedule (Career College Group / RECO)</b> — paid per course as you reach it:<br>
           C1 Essentials $600 · C2 Residential $685 · C3 Add'l Residential $360 · Sim 1 $740 · C4 Commercial $360 · Sim 2 $575 · C5 Getting Started $100 · Exams 6 × $120 = $720 → <b style="color:var(--ink)">$4,140 total</b>.<br>
-          The $414/mo here is the smoothed average — keep setting it aside as a course envelope, and pay each fee from the envelope when you enroll in that stage.
+          Starting Sept 29 at $478.50/month for 10 months.
+        </div>
+      </div>
+      <div class="card">
+        <h2 style="font-size:17px">Amazon course bridge</h2>
+        <div class="toggle" style="margin-top:10px">
+          <input type="checkbox" id="amazonOn" checked>
+          <label for="amazonOn"><b>One-month skill builder</b> in August — a trial before committing to the 10-month real estate program.</label>
+        </div>
+        <div class="field-list">
+          <div class="field"><label for="amazonAmt">Cost</label><input type="number" id="amazonAmt" value="500" min="0" step="1"></div>
         </div>
       </div>
       <div class="card">
@@ -613,7 +629,8 @@
     efGoal: 3000,
     strategy: "snowball",
     startCash: 0,
-    course: { on: true, amt: 414, months: 10, when: "now" },
+    course: { on: true, amt: 478.50, months: 10, when: "delayed", startMonth: 2 },
+    amazon: { on: true, amt: 500 },
     expenses: [
       ["Rent", 1425],
       ["Utilities ($335 biweekly)", 670],
@@ -726,6 +743,16 @@
       return d[1] === 1836.51 ? [/^Debt \d$/.test(d[0]) ? "MacBook Pro financing" : d[0], d[1], d[2] || 0, 331.88] : d;
     });
   }
+  // Aug 2026: course move to September start (Sept 29 at $478.50/mo)
+  if (!state.amazonCourseAdded) {
+    if (!state.amazon) state.amazon = { on: true, amt: 500 };
+    if (state.course.when === "now") {
+      state.course.when = "delayed";
+      state.course.startMonth = 2;
+      state.course.amt = 478.50;
+    }
+    state.amazonCourseAdded = true;
+  }
 
   function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {} }
 
@@ -780,9 +807,18 @@
       var toDebt = 0, toSave = 0, toCourse = 0, interest = 0, rowEvents = [];
       if (cash > 0) rowEvents.push("Starting cash deployed");
 
+      // Amazon course in month 1 (August)
+      var amazonCost = 0;
+      if (m === 1 && state.amazon?.on) {
+        amazonCost = state.amazon.amt || 500;
+        pool = Math.max(0, pool - amazonCost);
+        rowEvents.push("Amazon course: −$" + amazonCost.toFixed(2));
+      }
+
       // Course payment comes off the top — it's a committed bill.
       var debtNow = debts.reduce(function (s, x) { return s + x.bal; }, 0);
-      var courseActive = courseLeft > 0 && (courseWhen === "now" || courseStarted || debtNow <= 0.005);
+      var courseStartMonthNum = state.course.startMonth != null ? state.course.startMonth : (courseWhen === "delayed" ? 2 : 0);
+      var courseActive = courseLeft > 0 && (courseWhen === "now" || (courseWhen === "delayed" && m >= courseStartMonthNum) || courseStarted || debtNow <= 0.005);
       if (courseActive) {
         if (!courseStarted) { courseStarted = true; courseStartMonth = m; rowEvents.push("Course starts"); }
         toCourse = Math.min(courseAmt, pool);
@@ -871,7 +907,11 @@
     $("courseAmt").value = state.course.amt;
     $("courseMonths").value = state.course.months;
     $("courseNow").checked = state.course.when === "now";
+    $("courseDelayed").checked = state.course.when === "delayed";
     $("courseAfter").checked = state.course.when === "afterDebt";
+    if (state.course.startMonth != null) $("courseStartMonth").value = state.course.startMonth;
+    $("amazonOn").checked = !!state.amazon?.on;
+    $("amazonAmt").value = state.amazon?.amt || 500;
     renderExpenseInputs();
     renderDebtInputs(null);
   }
@@ -1874,7 +1914,11 @@
   $("courseAmt").addEventListener("input", function () { state.course.amt = +this.value || 0; update(); });
   $("courseMonths").addEventListener("input", function () { state.course.months = +this.value || 1; update(); });
   $("courseNow").addEventListener("change", function () { if (this.checked) { state.course.when = "now"; update(); } });
+  $("courseDelayed").addEventListener("change", function () { if (this.checked) { state.course.when = "delayed"; update(); } });
   $("courseAfter").addEventListener("change", function () { if (this.checked) { state.course.when = "afterDebt"; update(); } });
+  $("courseStartMonth").addEventListener("input", function () { state.course.startMonth = +this.value || 2; update(); });
+  $("amazonOn").addEventListener("change", function () { if (!state.amazon) state.amazon = {}; state.amazon.on = this.checked; update(); });
+  $("amazonAmt").addEventListener("input", function () { if (!state.amazon) state.amazon = {}; state.amazon.amt = +this.value || 0; update(); });
   $("nextPayday").addEventListener("change", function () { state.nextPayday = this.value || DEFAULTS.nextPayday; update(); });
   $("extraChecks").addEventListener("change", function () { state.extraChecks = this.checked; update(); });
   $("segSnow").addEventListener("click", function () { state.strategy = "snowball"; update(true); });
