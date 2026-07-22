@@ -321,6 +321,12 @@
   .warn.show { display: block; }
   .warn b { color: var(--bad); }
 
+  #trAlerts { display: flex; flex-direction: column; gap: 8px; }
+  .spend-alert { border-left: 3px solid var(--bad); padding: 8px 12px; background: var(--surface); color: var(--ink-2); font-size: 13px; border-radius: 0 8px 8px 0; }
+  .spend-alert.warn { border-left-color: var(--bad); }
+  .spend-alert.caution { border-left-color: #fab219; }
+  .spend-alert b { font-weight: 600; }
+
   .playbook { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   @media (max-width: 800px) { .playbook { grid-template-columns: 1fr; } }
   .playbook h3 { font-size: 15px; margin: 0 0 6px; }
@@ -533,6 +539,7 @@
         <input type="number" id="trStart" value="2150" min="0" step="1">
       </div>
       <div class="tr-plan" id="trPlan"></div>
+      <div id="trAlerts" style="margin-bottom:12px"></div>
       <button class="tr-addbtn" id="trPrefill" type="button" style="margin-bottom:12px">⤓ Prefill this month from your budget</button>
       <div id="trGroups"></div>
     </div>
@@ -1601,7 +1608,44 @@
     }
     $("trPlan").textContent = planLine;
 
+    renderSpendingAlerts(mk, budget);
     renderTrackerYear();
+  }
+
+  function renderSpendingAlerts(monthKey, budget) {
+    var el = $("trAlerts");
+    el.innerHTML = "";
+    var alerts = [];
+
+    // Check each spending category
+    TR_GROUPS.forEach(function (g) {
+      if (g === "Income" || g === "Savings") return; // Skip income and savings
+      var sum = 0;
+      state.trackerCats.forEach(function (c) {
+        if (c.group === g) sum += trAmt(c.id);
+      });
+      var bud = budget[g] || 0;
+      if (bud <= 0 || sum <= 0) return; // Skip if no budget or no spending
+
+      var pct = (sum / bud) * 100;
+      if (pct >= 100) {
+        alerts.push({ group: g, pct: pct, sum: sum, bud: bud, level: "over" });
+      } else if (pct >= 80) {
+        alerts.push({ group: g, pct: pct, sum: sum, bud: bud, level: "caution" });
+      }
+    });
+
+    // Render alerts
+    alerts.forEach(function (a) {
+      var alert = document.createElement("div");
+      alert.className = "spend-alert " + a.level;
+      if (a.level === "over") {
+        alert.innerHTML = "<b>" + a.group + " is over budget.</b> You've spent " + money(a.sum) + " of " + money(a.bud) + " (" + Math.round(a.pct) + "%). Cut back this month to stay on track.";
+      } else {
+        alert.innerHTML = "<b>" + a.group + " is at " + Math.round(a.pct) + "%.</b> You've spent " + money(a.sum) + " of " + money(a.bud) + ". Be careful not to overspend.";
+      }
+      el.appendChild(alert);
+    });
   }
 
   function renderTrackerYear() {
