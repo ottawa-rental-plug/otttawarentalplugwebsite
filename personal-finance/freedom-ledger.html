@@ -530,6 +530,9 @@
         <button type="button" id="dailyAdd" style="align-self:flex-end;padding:9px 14px;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">Log</button>
       </div>
       <div id="dailyStatus"></div>
+      <div style="display:flex;gap:10px;margin-top:12px">
+        <button type="button" id="copyWeekBtn" style="padding:8px 12px;background:var(--ink-2);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600">📋 Copy this week</button>
+      </div>
       <div id="dailyList" style="margin-top:12px;font-size:13px"></div>
     </div>
 
@@ -1937,6 +1940,47 @@
   });
   $("dailyAmt").addEventListener("keypress", function (e) {
     if (e.key === "Enter") $("dailyAdd").click();
+  });
+
+  $("copyWeekBtn").addEventListener("click", function () {
+    var today = new Date().toISOString().split('T')[0];
+    var week = getWeekNumber(new Date(today));
+    if (!week) { alert("Outside the bridge period."); return; }
+
+    var weekBudget = state.weeklyBudgets[week] || 0;
+    var entries = [];
+    var total = 0;
+
+    state.dailyLog.forEach(function (e) {
+      var eWeek = getWeekNumber(new Date(e.date));
+      if (eWeek === week) {
+        entries.push(e.date.slice(5) + " | " + e.cat + " | $" + e.amt.toFixed(2));
+        total += e.amt;
+      }
+    });
+
+    var text = "Week " + week + " Spending\n";
+    text += "Budget: $" + weekBudget.toFixed(2) + "\n";
+    text += "———————————————————\n";
+    if (entries.length > 0) {
+      text += entries.join("\n") + "\n";
+    } else {
+      text += "(no entries)\n";
+    }
+    text += "———————————————————\n";
+    text += "Total: $" + total.toFixed(2) + " / $" + weekBudget.toFixed(2);
+    if (total > weekBudget) {
+      text += " (over by $" + (total - weekBudget).toFixed(2) + ")";
+    } else {
+      text += " (remaining: $" + (weekBudget - total).toFixed(2) + ")";
+    }
+
+    navigator.clipboard.writeText(text).then(function () {
+      var btn = $("copyWeekBtn");
+      var old = btn.textContent;
+      btn.textContent = "✓ Copied!";
+      setTimeout(function () { btn.textContent = old; }, 2000);
+    });
   });
 
   var CSV_RULES = [
