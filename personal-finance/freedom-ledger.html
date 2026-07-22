@@ -520,7 +520,20 @@
 
   <section class="section">
     <div class="kicker">Step 6 · Track the actuals</div>
-    <h2>The logbook</h2>
+    <h2>Daily spending log</h2>
+    <p class="lede">Quick daily tracker for the bridge. Log as you spend. Warns if you're on pace to blow the weekly envelope.</p>
+    <div class="card">
+      <div class="field-list" style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;margin-bottom:12px">
+        <div><label for="dailyDate" style="font-size:13px">Date</label><input type="date" id="dailyDate"></div>
+        <div><label for="dailyAmt" style="font-size:13px">Amount ($)</label><input type="number" id="dailyAmt" min="0" step="0.01" placeholder="0.00"></div>
+        <div><label for="dailyCat" style="font-size:13px">Category</label><select id="dailyCat"><option value="">Food</option><option value="">Gas/Trans</option><option value="">Other</option></select></div>
+        <button type="button" id="dailyAdd" style="align-self:flex-end;padding:9px 14px;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">Log</button>
+      </div>
+      <div id="dailyStatus"></div>
+      <div id="dailyList" style="margin-top:12px;font-size:13px"></div>
+    </div>
+
+    <h2 style="margin-top:28px">Monthly logbook</h2>
     <p class="lede">The plan above is the forecast — this is the record. Log what actually came in and went out each month, by category. Savings count as "paid to yourself," so Net is what's left after everything, including saving.</p>
     <div class="card">
       <div class="tr-head">
@@ -638,6 +651,8 @@
     startCash: 0,
     course: { on: true, amt: 478.50, months: 10, when: "delayed", startMonth: 2 },
     amazon: { on: true, amt: 500 },
+    dailyLog: [],
+    weeklyBudgets: { 1: 150, 2: 150, 3: 150, 4: 100 },
     expenses: [
       ["Rent", 1425],
       ["Utilities ($335 biweekly)", 670],
@@ -1837,6 +1852,93 @@
     rd.readAsText(f); this.value = "";
   });
 
+  // ---- Daily spending log ----
+  function getWeekNumber(date) {
+    var bridge_start = new Date(2026, 6, 19); // Jul 19, 2026
+    var days_since = Math.floor((date - bridge_start) / (1000 * 60 * 60 * 24));
+    if (days_since < 0) return null;
+    if (days_since < 7) return 1;
+    if (days_since < 14) return 2;
+    if (days_since < 21) return 3;
+    if (days_since < 26) return 4;
+    return null;
+  }
+
+  function renderDailyLog() {
+    var today = new Date().toISOString().split('T')[0];
+    $("dailyDate").value = today;
+
+    var week = getWeekNumber(new Date(today));
+    var dayTotal = 0, weekTotal = 0, weekBudget = 0;
+
+    // Calculate today's and this week's totals
+    state.dailyLog.forEach(function (e) {
+      var eDate = new Date(e.date);
+      var eWeek = getWeekNumber(eDate);
+      if (e.date === today) dayTotal += e.amt;
+      if (eWeek === week) weekTotal += e.amt;
+    });
+
+    if (week) weekBudget = state.weeklyBudgets[week] || 0;
+    var dayBudget = week ? (weekBudget / 7) : 0;
+    var weekLeft = week ? (weekBudget - weekTotal) : 0;
+    var dayLeft = dayBudget - dayTotal;
+
+    // Status
+    var status = "";
+    if (week) {
+      status = "<b>Week " + week + " budget: $" + weekBudget.toFixed(0) + "</b> — ";
+      status += "Week so far: $" + weekTotal.toFixed(2) + " (" + Math.round((weekTotal/weekBudget)*100) + "%) · ";
+      status += "Today: $" + dayTotal.toFixed(2) + " of ~$" + dayBudget.toFixed(2) + " daily. ";
+      if (weekTotal > weekBudget) {
+        status += "<span style='color:var(--bad);font-weight:600'>🚨 Over budget by $" + (weekTotal - weekBudget).toFixed(2) + " this week!</span>";
+      } else if (weekTotal > weekBudget * 0.8) {
+        status += "<span style='color:#fab219;font-weight:600'>⚠ At " + Math.round((weekTotal/weekBudget)*100) + "% of weekly budget.</span>";
+      }
+    } else {
+      status = "Outside the bridge period (Jul 19 - Aug 13).";
+    }
+    $("dailyStatus").innerHTML = status;
+
+    // List
+    var list = "";
+    state.dailyLog.forEach(function (e, i) {
+      var eWeek = getWeekNumber(new Date(e.date));
+      if (eWeek === week) {
+        list += "<div style='display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px'>";
+        list += "<span>" + e.date.slice(5) + " · " + e.cat + " · $" + e.amt.toFixed(2) + "</span>";
+        list += "<button type='button' class='x' data-idx='" + i + "' style='background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0'>×</button>";
+        list += "</div>";
+      }
+    });
+    $("dailyList").innerHTML = list || "<p style='color:var(--muted);font-size:13px'>No spending logged for this week yet.</p>";
+
+    // Attach delete handlers
+    document.querySelectorAll("[data-idx]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        state.dailyLog.splice(+btn.dataset.idx, 1);
+        renderDailyLog(); save();
+      });
+    });
+  }
+
+  $("dailyAdd").addEventListener("click", function () {
+    var date = $("dailyDate").value;
+    var amt = +$("dailyAmt").value;
+    var cat = $("dailyCat").value || "Other";
+    if (!date || !amt || amt <= 0) { alert("Enter date and amount"); return; }
+    state.dailyLog.push({ date: date, amt: amt, cat: cat });
+    $("dailyAmt").value = "";
+    renderDailyLog(); save();
+  });
+
+  $("dailyDate").addEventListener("keypress", function (e) {
+    if (e.key === "Enter") $("dailyAdd").click();
+  });
+  $("dailyAmt").addEventListener("keypress", function (e) {
+    if (e.key === "Enter") $("dailyAdd").click();
+  });
+
   var CSV_RULES = [
     [/SHELL|PETRO|ESSO|ULTRAMAR|COSTCO GAS|SEAWAY|PIONEER|MOBIL/i, "Transportation", /fuel/i, "Fuel"],
     [/METRO|FOOD BASICS|SOBEYS|LOBLAWS|WALMART|WAL-MART|KOWLOON|FRESHCO|NO FRILLS|FARM BOY|COSTCO WHOLESALE/i, "Living", /grocer/i, "Groceries"],
@@ -1943,6 +2045,7 @@
     renderJourney(sim);
     renderCalendar(sim);
     renderChart(sim);
+    renderDailyLog();
     renderTracker(sim);
     if (reDebts) renderDebtInputs(sim);
     save();
