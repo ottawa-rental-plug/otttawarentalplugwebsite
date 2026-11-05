@@ -667,7 +667,7 @@
     ],
     debts: [
       ["goPeer loan", 699, 27.9, 72.93],
-      ["MacBook Pro financing", 1381.88, 0, 331.88]
+      ["MacBook Pro financing", 899, 0, 331.88]
     ]
   };
   var STORE_KEY = "freedom-ledger-v3";
@@ -798,6 +798,14 @@
       return /gopeer/i.test(d[0]) && +d[1] === 818 ? [d[0], 699, d[2], d[3]] : d;
     });
     state.goPeerNov5 = true;
+  }
+
+  // Nov 5, 2026: MacBook balance updated to $899 (paid down $482.88)
+  if (!state.macbookNov5) {
+    state.debts = state.debts.map(function (d) {
+      return /macbook|affirm/i.test(d[0]) && +d[1] === 1381.88 ? [d[0], 899, d[2], d[3]] : d;
+    });
+    state.macbookNov5 = true;
   }
 
   function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {} }
