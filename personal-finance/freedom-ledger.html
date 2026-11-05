@@ -666,7 +666,7 @@
       ["Misc essentials", 150]
     ],
     debts: [
-      ["goPeer loan", 818, 27.9, 72.93],
+      ["goPeer loan", 699, 27.9, 72.93],
       ["MacBook Pro financing", 1381.88, 0, 331.88]
     ]
   };
@@ -791,6 +791,13 @@
       return /gopeer/i.test(d[0]) && +d[1] === 951 ? [d[0], 818, d[2], d[3]] : d;
     });
     state.goPeerSep14 = true;
+  }
+  // Nov 5, 2026: goPeer balance updated to $699 (paid down $119 more)
+  if (!state.goPeerNov5) {
+    state.debts = state.debts.map(function (d) {
+      return /gopeer/i.test(d[0]) && +d[1] === 818 ? [d[0], 699, d[2], d[3]] : d;
+    });
+    state.goPeerNov5 = true;
   }
 
   function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {} }
